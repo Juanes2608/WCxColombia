@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScanRouteImport } from './routes/scan'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResultsMatterIdRouteImport } from './routes/results.$matterId'
 
 const ScanRoute = ScanRouteImport.update({
   id: '/scan',
   path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +37,34 @@ const ResultsMatterIdRoute = ResultsMatterIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/results/$matterId': typeof ResultsMatterIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/results/$matterId': typeof ResultsMatterIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/results/$matterId': typeof ResultsMatterIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/scan' | '/results/$matterId'
+  fullPaths: '/' | '/pricing' | '/scan' | '/results/$matterId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/scan' | '/results/$matterId'
-  id: '__root__' | '/' | '/scan' | '/results/$matterId'
+  to: '/' | '/pricing' | '/scan' | '/results/$matterId'
+  id: '__root__' | '/' | '/pricing' | '/scan' | '/results/$matterId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PricingRoute: typeof PricingRoute
   ScanRoute: typeof ScanRoute
   ResultsMatterIdRoute: typeof ResultsMatterIdRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/scan'
       fullPath: '/scan'
       preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PricingRoute: PricingRoute,
   ScanRoute: ScanRoute,
   ResultsMatterIdRoute: ResultsMatterIdRoute,
 }

@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Check,
   Calculator,
-  ShieldCheck,
   Info,
   TrendingUp,
 } from "lucide-react";
