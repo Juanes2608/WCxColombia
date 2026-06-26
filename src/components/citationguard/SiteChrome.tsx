@@ -1,17 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, ScanSearch } from "lucide-react";
 import { Logo } from "@/components/citationguard/Logo";
+import { ThemeToggle } from "@/components/citationguard/ThemeToggle";
 
 // Shared brand chrome so the landing and pricing pages feel like one experience.
 // The nav links jump back to landing sections from anywhere (cross-page hrefs),
 // and "Precios" routes to /pricing — landing ⇄ pricing in a single click.
 
 const NAV_LINKS = [
-  { href: "/#demo", label: "See it work" },
-  { href: "/#engines", label: "What it catches" },
-  { href: "/#proof", label: "The number" },
-  { href: "/#thesis", label: "Why it's different" },
-  { href: "/#faq", label: "FAQ" },
+  { href: "/#demo", label: "Product" },
+  { href: "/#engines", label: "How it works" },
+  { href: "/#thesis", label: "About" },
 ];
 
 export function Nav({ current }: { current?: "landing" | "pricing" }) {
@@ -41,6 +40,7 @@ export function Nav({ current }: { current?: "landing" | "pricing" }) {
           </Link>
         </nav>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <a
             href="/#faq"
             className="hidden text-sm font-medium text-n500 transition-colors hover:text-ink sm:inline"
@@ -51,7 +51,7 @@ export function Nav({ current }: { current?: "landing" | "pricing" }) {
             to="/scan"
             className="inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-paper transition-colors hover:bg-ink-700"
           >
-            Scan a document
+            Try demo
           </Link>
         </div>
       </div>
