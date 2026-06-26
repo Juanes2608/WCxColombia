@@ -14,7 +14,7 @@ import {
   History,
   Quote,
 } from "lucide-react";
-import { Logo } from "@/components/citationguard/Logo";
+import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,56 +35,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
-
-const NAV_LINKS = [
-  { href: "#demo", label: "See it work" },
-  { href: "#engines", label: "What it catches" },
-  { href: "#proof", label: "The number" },
-  { href: "#thesis", label: "Why it's different" },
-  { href: "#faq", label: "FAQ" },
-];
-
-function Nav() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-n300/70 bg-paper/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-3">
-        <Logo variant="wordmark" />
-        <nav className="hidden items-center gap-6 lg:flex">
-          {NAV_LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-n500 transition-colors hover:text-ink"
-            >
-              {l.label}
-            </a>
-          ))}
-          <span className="h-4 w-px bg-n300" aria-hidden="true" />
-          <a href="#audience" className="text-sm font-medium text-n500 transition-colors hover:text-ink">
-            For advocates
-          </a>
-          <a href="#audience" className="text-sm font-medium text-n500 transition-colors hover:text-ink">
-            For chambers
-          </a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <a
-            href="#faq"
-            className="hidden text-sm font-medium text-n500 transition-colors hover:text-ink sm:inline"
-          >
-            Sign in
-          </a>
-          <Link
-            to="/scan"
-            className="inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-paper transition-colors hover:bg-ink-700"
-          >
-            Scan a document
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 function VerdictRow({
   tone,
