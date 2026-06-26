@@ -228,31 +228,35 @@ def find_alternative_citation(
         {
             "role": "system",
             "content": (
-                "You are a legal research assistant. "
-                "Given a legal proposition a lawyer wants to support with authority, "
-                "identify up to 3 cases from the provided list that best support it. "
-                "Format: numbered list, each line = case name — one sentence why it supports the claim. "
-                "If no case fits, respond: 'No suitable authority in corpus.'"
+                "You are a legal citation assistant. "
+                "Respond with ONLY a numbered list of up to 3 cases. "
+                "Each line must be: NUMBER. CASE NAME — one sentence why it supports the proposition. "
+                "Do NOT include reasoning, explanation, or any other text. "
+                "If no case in the list fits, respond with exactly: NONE"
             ),
         },
         {
             "role": "user",
             "content": (
-                f"The lawyer wants to establish:\n{document_claim}\n\n"
-                f"Available cases in corpus:\n{corpus_text}\n\n"
-                "Which 1-3 cases best support this proposition? Numbered list:"
+                f"Proposition to support: {document_claim}\n\n"
+                f"Cases available:\n{corpus_text}\n\n"
+                "List up to 3 cases that best support this proposition. "
+                "Format: '1. Case Name — reason'. Output ONLY the list:"
             ),
         },
     ]
 
     raw = _call(super_model, messages, api_key, max_tokens=_MAX_TOKENS_ALTERNATIVES)
-    if not raw or "no suitable" in raw.lower():
+    if not raw or raw.strip().upper() == "NONE" or "no suitable" in raw.lower():
         return []
 
     alternatives = []
     for line in raw.strip().splitlines():
-        line = line.strip().lstrip("0123456789.)- ").strip()
-        if len(line) > 10:
-            alternatives.append({"suggestion": line})
+        line = line.strip()
+        # Only take numbered lines (1. 2. 3.)
+        if line and line[0].isdigit() and "." in line[:3]:
+            text = line.split(".", 1)[-1].strip()
+            if len(text) > 10 and "—" in text:
+                alternatives.append({"suggestion": text})
 
     return alternatives[:3]
