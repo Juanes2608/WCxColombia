@@ -38,7 +38,7 @@ export function Logo({ variant = "iso", className }: LogoProps) {
     return (
       <span className={`inline-flex items-center gap-3 ${className ?? ""}`}>
         <Isotype />
-        <span className="font-display text-2xl font-600 tracking-tight text-ink">
+        <span className="font-display text-2xl font-semibold tracking-tight text-ink">
           Citation<span className="text-action">Guard</span>
         </span>
       </span>
