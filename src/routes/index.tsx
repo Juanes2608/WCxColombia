@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
   PlayCircle,
   ScanSearch,
   ShieldCheck,
