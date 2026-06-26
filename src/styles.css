@@ -1,6 +1,16 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -59,29 +69,81 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* CitationGuard — Forensic brand tokens */
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-ink: var(--ink);
+  --color-ink-700: var(--ink-700);
+  --color-ink-300: var(--ink-300);
+  --color-accent-lime: var(--accent-lime);
+  --color-accent-deep: var(--accent-deep);
+  --color-action: var(--action);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-n100: var(--n100);
+  --color-n300: var(--n300);
+  --color-n500: var(--n500);
+  --color-n700: var(--n700);
+
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --color-good-bd: var(--good-bd);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-bd: var(--warn-bd);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-bad-bd: var(--bad-bd);
+  --color-unk: var(--unk);
+  --color-unk-bg: var(--unk-bg);
+  --color-unk-bd: var(--unk-bd);
 }
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+
+  /* CitationGuard — Forensic core palette */
+  --ink: #14181a;
+  --ink-700: #20262a;
+  --ink-300: #5a625f;
+  --accent-lime: #c6f035;
+  --accent-deep: #3c4a00;
+  --action: #5f8c00;
+  --paper: #f6f7f2;
+  --surface: #ffffff;
+  --n100: #ecefe6;
+  --n300: #d7dbcf;
+  --n500: #6e726a;
+  --n700: #2e322c;
+
+  /* Verdict tokens (semantic only, WCAG-AA verified) */
+  --good: #166534; --good-bg: #e7f4ec; --good-bd: #a6d8b9;
+  --warn: #92400e; --warn-bg: #fbf1e3; --warn-bd: #e6c496;
+  --bad: #b91c1c; --bad-bg: #fbeaea; --bad-bd: #e3a6a6;
+  --unk: #4b4f49; --unk-bg: #ecefe6; --unk-bd: #c8cdbe;
+
+  --background: #f6f7f2;
+  --foreground: #14181a;
+  --card: #ffffff;
+  --card-foreground: #14181a;
+  --popover: #ffffff;
+  --popover-foreground: #14181a;
+  --primary: #14181a;
+  --primary-foreground: #f6f7f2;
+  --secondary: #ecefe6;
+  --secondary-foreground: #14181a;
+  --muted: #ecefe6;
+  --muted-foreground: #6e726a;
+  --accent: #ecefe6;
+  --accent-foreground: #14181a;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #d7dbcf;
+  --input: #d7dbcf;
+  --ring: #14181a;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -140,5 +202,6 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 }
