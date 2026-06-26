@@ -225,9 +225,31 @@ class ToolExecutor:
 
     def _find_supporting_authority(self, proposition: str) -> dict:
         summaries = self._corpus.list_all()
+        query_words = set(re.sub(r"[^a-z\s]", "", proposition.lower()).split()) - {
+            "the", "a", "an", "is", "are", "was", "were", "of", "in", "to",
+            "for", "and", "or", "that", "this", "it", "by", "on", "at", "be",
+            "has", "have", "had", "with", "not", "from", "as", "its",
+        }
+
+        # Score each case by keyword overlap with the proposition
+        scored = []
+        for case in summaries:
+            prop_text = case.get("proposition", "").lower()
+            words_in_prop = set(re.sub(r"[^a-z\s]", "", prop_text).split())
+            overlap = len(query_words & words_in_prop)
+            if overlap > 0:
+                scored.append((overlap, case))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        candidates = [c for _, c in scored[:8]]
+
+        # Fallback: return first 8 if no keyword overlap
+        if not candidates:
+            candidates = summaries[:8]
+
         return {
             "proposition_queried": proposition,
-            "candidates": summaries[:20],  # agent reasons over these
+            "candidates": candidates,
         }
 
     def _submit_verdict(self, **kwargs) -> dict:

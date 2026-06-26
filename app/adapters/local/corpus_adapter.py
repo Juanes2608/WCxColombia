@@ -104,16 +104,47 @@ class LocalCorpusAdapter(ICorpusRepository):
         best_score = 0
 
         for node in self._nodes.values():
-            score = 0
-            if node.short_name.lower() in fragment_lower:
-                score = len(node.short_name)          # longer match wins
-            elif node.citation.lower() in fragment_lower:
-                score = len(node.citation)
+            score = self._match_score(node, fragment_lower)
             if score > best_score:
                 best_score = score
                 best = node
 
         return best
+
+    @staticmethod
+    def _match_score(node: "CaseNode", fragment_lower: str) -> int:
+        """
+        Multi-strategy matching to handle citation format variants.
+        Returns a score (higher = better match). 0 = no match.
+        """
+        short = node.short_name.lower()
+        full  = node.citation.lower()
+
+        # Strategy 1: exact substring match on short_name or full citation
+        if short in fragment_lower:
+            return len(short) + 100
+        if full in fragment_lower:
+            return len(full) + 100
+
+        # Strategy 2: both parties match (handles "DC Thomson & Co Ltd v Deakin"
+        # vs short_name "DC Thomson v Deakin" — parties split by " v ")
+        if " v " in short:
+            parts = short.split(" v ", 1)
+            p1 = parts[0].strip()       # "dc thomson"
+            p2 = parts[1].strip()       # "deakin"
+            if len(p1) >= 4 and len(p2) >= 4:
+                if p1 in fragment_lower and p2 in fragment_lower:
+                    return len(p1) + len(p2) + 50
+
+        # Strategy 3: year + first plaintiff (catches "[1952]" + "thomson")
+        year_match = re.search(r"\[?(\d{4})\]?", full)
+        if year_match:
+            year = year_match.group(1)
+            first_word = short.split()[0].lower()
+            if len(first_word) >= 4 and year in fragment_lower and first_word in fragment_lower:
+                return len(first_word) + 20
+
+        return 0
 
     def get_misapplied_table(self) -> dict[str, str]:
         return dict(self._misapplied)
