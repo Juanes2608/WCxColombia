@@ -9,7 +9,7 @@ import {
   MAX_FILE_BYTES,
 } from "@/lib/api-client";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/scan")({
   head: () => ({
     meta: [
       { title: "CitationGuard — Citation integrity for skeleton arguments" },
