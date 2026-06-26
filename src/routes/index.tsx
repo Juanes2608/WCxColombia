@@ -407,51 +407,6 @@ function Faq() {
   );
 }
 
-function Closing() {
-  return (
-    <section id="audience" className="bg-ink">
-      <div className="mx-auto max-w-3xl px-6 py-24 text-center text-paper">
-        <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-          Because the AI invents.
-          <br />
-          <span className="bg-accent-lime px-1 text-ink">The corpus doesn&rsquo;t.</span>
-        </h2>
-        <p className="mt-5 text-lg text-paper/70">
-          Deterministic citation integrity, with every gap disclosed. The corpus is the witness.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/scan"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-lime px-6 py-3 text-sm font-semibold text-ink transition-opacity hover:opacity-90"
-          >
-            <ScanSearch className="h-4 w-4" /> Scan a skeleton argument
-          </Link>
-          <a
-            href="#faq"
-            className="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-6 py-3 text-sm font-semibold text-paper transition-colors hover:border-paper"
-          >
-            Talk to the team <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-n300/70 bg-paper">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
-        <Logo variant="wordmark" />
-        <p className="max-w-md text-xs text-n500">
-          © {new Date().getFullYear()} CitationGuard. Decision support for citation integrity — not
-          legal advice.
-        </p>
-      </div>
-    </footer>
-  );
-}
-
 function Landing() {
   return (
     <main className="min-h-screen bg-paper">
