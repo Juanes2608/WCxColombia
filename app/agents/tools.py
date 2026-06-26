@@ -32,16 +32,16 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "lookup_corpus",
             "description": (
-                "Look up a legal case citation in the verified corpus. "
-                "Returns case details (propositions, status) if found. "
-                "Returns found=false if the case does not exist — this means FABRICATED."
+                "Search the verified UK case law database for a citation. "
+                "Returns the case's actual legal propositions, court, year, and status if found. "
+                "Returns found=false if no matching case exists in the database."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "citation": {
                         "type": "string",
-                        "description": "The case citation exactly as it appears in the document.",
+                        "description": "The case citation to search for.",
                     }
                 },
                 "required": ["citation"],
@@ -53,16 +53,16 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_document_context",
             "description": (
-                "Extract the paragraph from the document where this citation appears. "
-                "Use this to understand what legal proposition the author is using "
-                "the citation to support."
+                "Retrieve the text from the document surrounding a specific citation. "
+                "Returns the paragraph(s) where the citation appears, showing how "
+                "the author uses it in context."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "citation": {
                         "type": "string",
-                        "description": "The citation to find in the document.",
+                        "description": "The citation to locate in the document.",
                     }
                 },
                 "required": ["citation"],
@@ -74,16 +74,16 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "check_treatment_history",
             "description": (
-                "Check whether a verified case is still good law. "
-                "Returns OVERRULED, DISTINGUISHED, or GOOD_LAW. "
-                "Call this after lookup_corpus confirms the case exists."
+                "Check how a case has been treated in subsequent decisions. "
+                "Returns whether the case is GOOD_LAW, OVERRULED, or DISTINGUISHED, "
+                "and which cases overruled or distinguished it."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "node_id": {
                         "type": "string",
-                        "description": "The node_id returned by lookup_corpus.",
+                        "description": "The node_id of the case (returned by lookup_corpus).",
                     }
                 },
                 "required": ["node_id"],
@@ -95,15 +95,15 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "find_supporting_authority",
             "description": (
-                "Search the corpus for cases that actually support a given legal proposition. "
-                "Use this when a citation is MISAPPLIED to suggest a correct alternative."
+                "Search the case law database for cases that support a given legal proposition. "
+                "Returns candidate cases with their actual propositions for comparison."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "proposition": {
                         "type": "string",
-                        "description": "The legal proposition the author wants to establish.",
+                        "description": "The legal proposition to find supporting authority for.",
                     }
                 },
                 "required": ["proposition"],
@@ -114,10 +114,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "submit_verdict",
-            "description": (
-                "Submit your final verified verdict. Call this when you have completed "
-                "your investigation and are ready to give the result. This ends the analysis."
-            ),
+            "description": "Submit your final verdict for this citation. Call this when your investigation is complete.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -125,31 +122,31 @@ TOOL_SCHEMAS = [
                         "type": "string",
                         "enum": ["FABRICATED", "MISAPPLIED", "VERIFIED"],
                         "description": (
-                            "FABRICATED: case does not exist in the corpus. "
-                            "MISAPPLIED: case exists but is being used for the wrong proposition. "
-                            "VERIFIED: case exists, is good law, and is correctly applied."
+                            "FABRICATED: the case does not exist in the database. "
+                            "MISAPPLIED: the case exists but is cited for the wrong proposition. "
+                            "VERIFIED: the case exists, is good law, and is correctly applied."
                         ),
                     },
                     "reason": {
                         "type": "string",
-                        "description": "One sentence explaining the verdict.",
+                        "description": "One sentence explaining the verdict based on your findings.",
                     },
                     "layer2_verdict": {
                         "type": "string",
                         "enum": ["GOOD_LAW", "OVERRULED", "DISTINGUISHED", "NOT_CHECKED"],
-                        "description": "Treatment history verdict. NOT_CHECKED if citation is FABRICATED.",
+                        "description": "Treatment history of the case.",
                     },
                     "proposition_cited": {
                         "type": "string",
-                        "description": "What the document claims this case establishes. Required for MISAPPLIED.",
+                        "description": "What the document claims this case establishes (for MISAPPLIED).",
                     },
                     "proposition_actual": {
                         "type": "string",
-                        "description": "What the case actually establishes. Required for MISAPPLIED.",
+                        "description": "What the case actually establishes (for MISAPPLIED).",
                     },
                     "alternative_citation": {
                         "type": "string",
-                        "description": "A better citation for the proposition, if one was found.",
+                        "description": "A better citation that genuinely supports the proposition, if found.",
                     },
                 },
                 "required": ["verdict", "reason", "layer2_verdict"],
