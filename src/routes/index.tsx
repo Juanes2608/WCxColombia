@@ -5,7 +5,7 @@ import {
   PlayCircle,
   ScanSearch,
   ShieldCheck,
-  ScaleIcon,
+  Scale,
   XCircle,
   AlertTriangle,
   CheckCircle2,
@@ -104,9 +104,10 @@ function VerdictRow({
     warn: "bg-warn-bg text-warn border-warn-bd",
     good: "bg-good-bg text-good border-good-bd",
   }[tone];
+  const iconColor = { bad: "text-bad", warn: "text-warn", good: "text-good" }[tone];
   return (
     <div className="flex items-start gap-3 border-b border-n100 px-4 py-3 last:border-0">
-      <Icon className={`mt-0.5 h-4 w-4 shrink-0 text-${tone}`} aria-hidden="true" />
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconColor}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-mono text-xs text-ink">{cite}</p>
         <p className="mt-0.5 text-xs text-n500">{note}</p>
@@ -375,7 +376,7 @@ function Thesis() {
       body: "When coverage is incomplete, we say so on the finding. Silence is never \u201Cverified\u201D.",
     },
     {
-      icon: ScaleIcon,
+      icon: Scale,
       title: "The advocate signs, not the software.",
       body: "CitationGuard is decision support, not legal advice — and we label every advisory note as advisory.",
     },
