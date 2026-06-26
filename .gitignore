@@ -1,0 +1,9 @@
+# secrets + local env
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# data (large; not versioned)
+data/
+*.zip

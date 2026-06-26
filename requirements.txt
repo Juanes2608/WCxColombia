@@ -1,0 +1,23 @@
+# --- Citation Checker : EUR-Lex -> Neo4j citation graph ---
+# HTTP client for talking to the Cellar SPARQL endpoint
+requests>=2.31
+# Official Neo4j driver (Bolt protocol) for loading + querying the graph
+neo4j>=5.14
+# Loads NEO4J_* credentials from a local .env file
+python-dotenv>=1.0
+# PDF text extraction for the Case Law Database (real UK/EW judgments)
+pypdf>=4.0
+# Fuzzy matching of cited case names against graph nodes (verification)
+rapidfuzz>=3.0
+# --- retrieval layer (passage-level verification) ---
+# Render scanned judgment pages for OCR (no poppler needed on Windows)
+pymupdf>=1.24
+# OCR wrapper around the local Tesseract binary
+pytesseract>=0.3.10
+# Local, offline embeddings (ONNX, no torch) for semantic passage search
+fastembed>=0.3
+# Pillow: image handling for the OCR render step
+pillow>=10.0
+# --- reserved for later phases (frontend + report) ---
+flask>=3.0
+reportlab>=4.0
