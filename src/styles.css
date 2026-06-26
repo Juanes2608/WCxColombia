@@ -160,6 +160,20 @@
 }
 
 .dark {
+  /* CitationGuard — Forensic core palette (dark) */
+  --ink: #f6f7f2;
+  --ink-700: #e6e8e0;
+  --ink-300: #b9bfb6;
+  --accent-lime: #c6f035;
+  --accent-deep: #d6f56a;
+  --action: #a3d335;
+  --paper: #14181a;
+  --surface: #1c2225;
+  --n100: #262c2e;
+  --n300: #363d3e;
+  --n500: #9aa097;
+  --n700: #cfd3c9;
+
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
