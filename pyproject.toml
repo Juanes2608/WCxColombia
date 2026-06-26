@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Makes `app` importable from all test files without needing sys.path hacks
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
