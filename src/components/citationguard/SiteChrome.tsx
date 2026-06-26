@@ -41,12 +41,12 @@ export function Nav({ current }: { current?: "landing" | "pricing" }) {
         </nav>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <a
-            href="/#faq"
+          <Link
+            to="/signin"
             className="hidden text-sm font-medium text-n500 transition-colors hover:text-ink sm:inline"
           >
             Sign in
-          </a>
+          </Link>
           <Link
             to="/scan"
             className="inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-paper transition-colors hover:bg-ink-700"
