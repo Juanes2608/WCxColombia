@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Local env — NEVER commit secrets (API keys live here, only read server-side)
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

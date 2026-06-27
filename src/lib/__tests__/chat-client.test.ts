@@ -6,7 +6,9 @@ const snapshot = { tier: "enterprise" } as unknown as ModelSnapshot;
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
-  vi.stubEnv("VITE_API_URL", "https://api.example.com");
+  // Stub the dedicated chat URL (the primary var the client reads); this overrides
+  // any value vitest may load from .env.local during local development.
+  vi.stubEnv("VITE_CHAT_API_URL", "https://api.example.com");
 });
 
 describe("sendChatMessage", () => {

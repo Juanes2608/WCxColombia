@@ -8,9 +8,12 @@ export interface ChatMessage {
   content: string;
 }
 
-// Read at call time (not module load) so tests can stub VITE_API_URL.
+// Read at call time (not module load) so tests can stub the env.
+// Prefer a dedicated chat backend (e.g. a local dev proxy) and fall back to the
+// shared backend URL, so chat and scan/verify can point to different servers.
 function apiBase(): string {
-  return (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+  const url = import.meta.env.VITE_CHAT_API_URL ?? import.meta.env.VITE_API_URL ?? "";
+  return url.replace(/\/+$/, "");
 }
 
 export async function sendChatMessage(
@@ -19,7 +22,7 @@ export async function sendChatMessage(
 ): Promise<string> {
   const base = apiBase();
   if (!base) {
-    throw new Error("Backend URL no configurada. Define VITE_API_URL y reconstruye la app.");
+    throw new Error("Backend URL no configurada. Define VITE_CHAT_API_URL o VITE_API_URL.");
   }
   let res: Response;
   try {
