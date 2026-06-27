@@ -21,7 +21,6 @@ import {
   computeBusinessCase,
   CAPACITY_TIERS,
   computeCapacityCost,
-  platformBuildTotal,
   CAPTURE_STANCES,
   matchStance,
   effectiveCapturePct,
@@ -51,23 +50,8 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PlanCards() {
-  const platform = platformBuildTotal();
   return (
     <div>
-      {/* Platform build — one-time, serves any capacity below */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-n300 bg-surface px-6 py-5">
-        <div className="max-w-xl">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-action">
-            Platform build · one-time
-          </p>
-          <p className="mt-1 text-sm text-n500">
-            The engine — citation graph, legislation.gov.uk ingestion, deterministic verdict logic
-            — built <span className="text-ink">once</span> and shared by every capacity below.
-          </p>
-        </div>
-        <span className="font-display text-3xl font-semibold text-ink">{formatGBP(platform)}</span>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-4">
         {CAPACITY_TIERS.map((t) => {
           const cost = computeCapacityCost(t);
@@ -525,78 +509,6 @@ function Metric({
   );
 }
 
-function DemandSection() {
-  return (
-    <section className="border-y border-n300/70 bg-ink">
-      <div className="mx-auto max-w-6xl px-6 py-20 text-paper">
-        <div className="max-w-2xl">
-          <p className="font-mono text-xs uppercase tracking-widest text-accent-lime">
-            Why the spend holds up
-          </p>
-          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            The margin is there because the downside is enormous.
-          </h2>
-          <p className="mt-4 text-lg text-paper/70">
-            You don&rsquo;t pay TraceIt against zero. You pay it against the cost of one bad
-            authority reaching the court. That is what makes a few hundred pounds a month an easy
-            call.
-          </p>
-        </div>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
-            <p className="font-display text-4xl font-semibold text-accent-lime">
-              {Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}–
-              {Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%
-            </p>
-            <p className="mt-3 text-sm text-paper/80">
-              hallucination rate in legal AI tools: Lexis+ AI ({Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}%)
-              and Westlaw AI ({Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%) in independent Stanford testing.
-              General LLMs reach {Math.round(CONSTANTS.GENERAL_LLM_HALLUCINATION_RATE.value * 100)}%+ on legal citations.
-            </p>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-              Verified · Stanford RegLab 2024
-            </p>
-          </div>
-          <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
-            <p className="font-display text-4xl font-semibold text-accent-lime">CPR r.44.11</p>
-            <p className="mt-3 text-sm text-paper/80">
-              wasted-costs exposure for putting bad authority before the court.{" "}
-              <strong>Ayinde v Haringey [2025] EWHC 1383</strong>: court sanctioned AI-fabricated
-              citations, triggering SRA/BSB referrals. Direct wasted costs:{" "}
-              {formatGBP(CONSTANTS.DIRECT_WASTED_COSTS_PER_INCIDENT.value)} per incident,
-              with reputational exposure on top.
-            </p>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-              Verified · Civil Procedure Rules · Ayinde [2025] EWHC 1383
-            </p>
-          </div>
-
-          {/* TraceIt's answer, broken out wide so the "0" lands as the resolution
-              to the two risks above, not a third equal stat in the row. */}
-          <div className="flex flex-col gap-5 rounded-2xl border-2 border-accent-lime/40 bg-ink-700 p-7 sm:col-span-2 sm:flex-row sm:items-center">
-            <p className="font-display text-6xl font-semibold leading-none text-accent-lime sm:text-7xl">
-              0
-            </p>
-            <div className="sm:border-l sm:border-paper/15 sm:pl-6">
-              <p className="text-base text-paper/80">
-                hallucinated existence verdicts, because deterministic lookup returns only what the
-                corpus holds.
-              </p>
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-                By construction
-              </p>
-            </div>
-          </div>
-        </div>
-        <p className="mt-6 max-w-3xl text-sm text-paper/60">
-          One wasted-costs order, or one filing discredited in front of a judge, dwarfs a year of
-          subscription. The calculator above only counts review hours. The risk avoided is on top.
-        </p>
-      </div>
-    </section>
-  );
-}
-
 function Honesty() {
   const rows = [
     {
@@ -708,9 +620,6 @@ function PricingPage() {
           <ReturnCalculator capacityTier={capacityTier} setCapacityTier={setCapacityTier} />
         </div>
       </section>
-
-      {/* 4. Why it's paid — the demand side */}
-      <DemandSection />
 
       {/* 5. Honesty / fine print */}
       <Honesty />

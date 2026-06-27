@@ -17,9 +17,7 @@ import {
 } from "lucide-react";
 import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
 import { DecryptedText } from "@/components/motion/DecryptedText";
-import { CountUp } from "@/components/motion/CountUp";
 import { AnimatedContent } from "@/components/motion/AnimatedContent";
-import { Atmosphere } from "@/components/motion/Atmosphere";
 import { AppMock } from "@/components/citationguard/AppMock";
 
 export const Route = createFileRoute("/")({
@@ -228,80 +226,6 @@ function Engines() {
   );
 }
 
-function Proof() {
-  const stats: {
-    label: string;
-    src: string;
-    value?: string;
-    count?: { prefix?: string; to: number; suffix?: string };
-  }[] = [
-    {
-      count: { prefix: "~1 in ", to: 6 },
-      label: "rate at which leading LLMs hallucinate legal citations",
-      src: "Stanford HAI",
-    },
-    { value: "CPR r.44.11", label: "wasted-costs exposure for citing bad authority", src: "Civil Procedure Rules" },
-    { value: "0", label: "hallucinated verdicts in deterministic corpus lookup", src: "By construction" },
-  ];
-  return (
-    <section
-      id="proof"
-      className="relative overflow-hidden border-y border-white/10 bg-ink-fixed"
-    >
-      <Atmosphere />
-      <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 text-paper-fixed">
-        <div className="max-w-2xl">
-          <h2 className="font-editorial text-3xl font-semibold tracking-tight sm:text-4xl">
-            One fabricated citation is enough to discredit the filing.
-          </h2>
-          <p className="mt-4 text-lg text-paper-fixed/70">
-            Generative AI fabricates legal citations at a measurable rate. Deterministic lookup
-            fabricates none, because it can only return what the corpus contains.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          {stats.slice(0, 2).map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-white/10 bg-surface-fixed/80 p-7 backdrop-blur-sm"
-            >
-              <p className="font-display text-4xl font-semibold text-accent-lime">
-                {s.count ? (
-                  <CountUp prefix={s.count.prefix} to={s.count.to} suffix={s.count.suffix} />
-                ) : (
-                  s.value
-                )}
-              </p>
-              <p className="mt-3 text-sm text-paper-fixed/80">{s.label}</p>
-              <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper-fixed/40">
-                {s.src}
-              </p>
-            </div>
-          ))}
-
-          {/* The brand payoff, broken out of the row as a wide hero tile: the "0"
-              reads as the answer to the two risks above it, not a third equal stat. */}
-          <div className="flex flex-col gap-5 rounded-2xl border-2 border-accent-lime/40 bg-surface-fixed/80 p-7 backdrop-blur-sm sm:col-span-2 sm:flex-row sm:items-center">
-            <p className="font-display text-6xl font-semibold leading-none text-accent-lime sm:text-7xl">
-              {stats[2].value}
-            </p>
-            <div className="sm:border-l sm:border-white/10 sm:pl-6">
-              <p className="text-base text-paper-fixed/80">{stats[2].label}</p>
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-paper-fixed/40">
-                {stats[2].src}
-              </p>
-            </div>
-          </div>
-        </div>
-        <p className="mt-6 font-mono text-xs text-paper-fixed/50">
-          Computed deterministically, not LLM-generated.
-        </p>
-      </div>
-    </section>
-  );
-}
-
 function Thesis() {
   const principles = [
     {
@@ -407,9 +331,6 @@ function Landing() {
       </AnimatedContent>
       <AnimatedContent>
         <Engines />
-      </AnimatedContent>
-      <AnimatedContent>
-        <Proof />
       </AnimatedContent>
       <AnimatedContent>
         <Thesis />
