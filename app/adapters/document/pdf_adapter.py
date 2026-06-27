@@ -11,7 +11,7 @@ import logging
 from app.ports.document import IDocumentIngestor, IngestedDocument
 from app.adapters.document.docx_adapter import extract_text_from_docx
 
-logger = logging.getLogger("citationguard.document")
+logger = logging.getLogger("traceit.document")
 
 _MIN_CHARS = 100
 _CONFIDENCE_THRESHOLD = 0.60

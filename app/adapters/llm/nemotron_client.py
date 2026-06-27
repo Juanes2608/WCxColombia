@@ -23,7 +23,7 @@ import logging
 
 import httpx
 
-logger = logging.getLogger("citationguard.nemotron")
+logger = logging.getLogger("traceit.nemotron")
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _TIMEOUT = 30.0
@@ -59,8 +59,8 @@ def _call(
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://citationguard.ai",
-                "X-Title": "CitationGuard",
+                "HTTP-Referer": "https://traceit.ai",
+                "X-Title": "TraceIT",
             },
             json=payload,
             timeout=_TIMEOUT,

@@ -19,7 +19,7 @@ import json
 import re
 import logging
 
-logger = logging.getLogger("citationguard.agent.tools")
+logger = logging.getLogger("traceit.agent.tools")
 
 _CONTEXT_WINDOW = 700  # chars each side of the citation
 

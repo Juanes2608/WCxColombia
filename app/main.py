@@ -14,7 +14,7 @@ from app.adapters.legislation.uk_adapter import LegislationGovUkAdapter
 from app.api.routers import health, verify, suggest, graph
 from app.config import get_settings
 
-logger = logging.getLogger("citationguard")
+logger = logging.getLogger("traceit")
 
 # Common statute sections seen in High Court skeleton arguments — pre-warmed at startup
 _PREWARM_SECTIONS = [
@@ -37,13 +37,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── Startup ──────────────────────────────────────────────────────────────
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, _prewarm_legislation_cache)
-    logger.info("CitationGuard startup — legislation cache pre-warm dispatched")
+    logger.info("TraceIT startup — legislation cache pre-warm dispatched")
 
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────────────────
     close_driver()
-    logger.info("CitationGuard shutdown — Neo4j driver closed")
+    logger.info("TraceIT shutdown — Neo4j driver closed")
 
 
 def create_app() -> FastAPI:
@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="CitationGuard API",
+        title="TraceIT API",
         description=(
             "Deterministic citation integrity checker for legal documents. "
             "Layer 1 (corpus lookup) + Layer 2 (Neo4j treatment history) + "

@@ -5,15 +5,15 @@ All are raised by the domain/service layer and caught by FastAPI exception handl
 from __future__ import annotations
 
 
-class CitationGuardError(Exception):
-    """Base class for all CitationGuard domain errors."""
+class TraceITError(Exception):
+    """Base class for all TraceIT domain errors."""
 
 
-class DocumentIngestionError(CitationGuardError):
+class DocumentIngestionError(TraceITError):
     """Raised when a document cannot be ingested (corrupt, password-protected, etc.)."""
 
 
-class NeedsHumanReview(CitationGuardError):
+class NeedsHumanReview(TraceITError):
     """
     Raised when the confidence of an extracted result is too low to auto-verify.
     The service returns a partial result rather than a fabricated verdict.
@@ -23,7 +23,7 @@ class NeedsHumanReview(CitationGuardError):
         self.reason = reason
 
 
-class CorpusUnavailableError(CitationGuardError):
+class CorpusUnavailableError(TraceITError):
     """
     Raised when the corpus (Neo4j) is not reachable at all.
     Distinguished from ServiceUnavailable, which causes graceful degradation.

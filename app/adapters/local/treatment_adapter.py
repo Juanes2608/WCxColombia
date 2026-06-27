@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app.ports.treatment import ITreatmentRepository, TreatmentHistory
 
-logger = logging.getLogger("citationguard.local_treatment")
+logger = logging.getLogger("traceit.local_treatment")
 
 
 def _slug(text: str) -> str:

@@ -17,7 +17,7 @@ from neo4j import exceptions as neo4j_exc
 from app.adapters.neo4j.driver import get_driver
 from app.ports.corpus import CaseNode, ICorpusRepository
 
-logger = logging.getLogger("citationguard.corpus")
+logger = logging.getLogger("traceit.corpus")
 
 
 class Neo4jCorpusAdapter(ICorpusRepository):

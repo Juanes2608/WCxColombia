@@ -13,7 +13,7 @@ from pathlib import Path
 
 from app.ports.corpus import CaseNode, ICorpusRepository
 
-logger = logging.getLogger("citationguard.local_corpus")
+logger = logging.getLogger("traceit.local_corpus")
 
 
 def _find_lawyer_data() -> Path:

@@ -22,7 +22,7 @@ from app.adapters.llm.nemotron_client import (
 )
 from app.domain.models import AlternativeSuggestion, ContextAnalysis
 
-logger = logging.getLogger("citationguard.context_pipeline")
+logger = logging.getLogger("traceit.context_pipeline")
 
 _CONTEXT_WINDOW = 700  # chars on each side of the citation in the document
 

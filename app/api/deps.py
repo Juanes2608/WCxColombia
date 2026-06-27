@@ -1,10 +1,12 @@
 """
-FastAPI dependency injection — production wiring.
+FastAPI dependency injection.
 
-Primary data store: Neo4j Aura (required in production via NEO4J_URI + NEO4J_PASSWORD).
-Fallback: local CSV corpus (for local dev when NEO4J_URI is empty).
+Adapter selection strategy (no hardcoded values):
+  - If NEO4J_URI + NEO4J_PASSWORD are set → use Neo4j Aura adapters (production)
+  - Otherwise → use local CSV adapters (local dev / demo without cloud)
 
 The VerifyService receives ports (interfaces), not concrete adapters.
+Swapping Neo4j for local adapters requires zero changes to the service or domain.
 """
 from __future__ import annotations
 
@@ -19,18 +21,17 @@ from app.ports.corpus import ICorpusRepository
 from app.ports.treatment import ITreatmentRepository
 from app.services.verify_service import VerifyService
 
-logger = logging.getLogger("citationguard.deps")
+logger = logging.getLogger("traceit.deps")
 
 
 def _make_corpus_adapter() -> ICorpusRepository:
     settings = get_settings()
     if settings.neo4j_configured:
         from app.adapters.neo4j.corpus_adapter import Neo4jCorpusAdapter
-        logger.info("Corpus: Neo4j Aura (%s)", settings.neo4j_uri)
+        logger.info("Corpus adapter: Neo4j Aura (%s)", settings.neo4j_uri)
         return Neo4jCorpusAdapter()
-    # Local CSV — only for development (set NEO4J_URI in production)
     from app.adapters.local.corpus_adapter import LocalCorpusAdapter
-    logger.warning("Corpus: local CSV — Neo4j not configured (dev mode)")
+    logger.info("Corpus adapter: local CSV (Neo4j not configured)")
     return LocalCorpusAdapter()
 
 
@@ -38,10 +39,10 @@ def _make_treatment_adapter() -> ITreatmentRepository:
     settings = get_settings()
     if settings.neo4j_configured:
         from app.adapters.neo4j.treatment_adapter import Neo4jTreatmentAdapter
-        logger.info("Treatment: Neo4j Aura")
+        logger.info("Treatment adapter: Neo4j Aura")
         return Neo4jTreatmentAdapter()
     from app.adapters.local.treatment_adapter import LocalTreatmentAdapter
-    logger.warning("Treatment: local CSV — Neo4j not configured (dev mode)")
+    logger.info("Treatment adapter: local CSV")
     return LocalTreatmentAdapter()
 
 

@@ -217,22 +217,25 @@ def _run_agent(
     corpus: "ICorpusRepository",
     treatment: "ITreatmentRepository",
 ) -> "AgentVerdict | None":
-    """Run CitationAgent and return its verdict, or None on failure."""
+    """Run CitationAgent with Nemotron primary + Infermatic fallback."""
     try:
         from app.agents.citation_agent import run_citation_agent
         from app.agents.tools import ToolExecutor
         from app.config import get_settings
+        s = get_settings()
         executor = ToolExecutor(corpus=corpus, treatment=treatment, doc_text=doc_text)
         return run_citation_agent(
-            citation=citation,
-            doc_text=doc_text,
-            executor=executor,
-            api_key=get_settings().openrouter_api_key,
-            model=get_settings().openrouter_super_model,
+            citation           = citation,
+            doc_text           = doc_text,
+            executor           = executor,
+            api_key            = s.openrouter_api_key,
+            model              = s.openrouter_super_model,
+            infermatic_api_key = s.infermatic_api_key,
+            infermatic_model   = s.infermatic_model,
         )
     except Exception as exc:
         import logging
-        logging.getLogger("citationguard").warning("Agent failed for '%s': %s", citation[:50], exc)
+        logging.getLogger("traceit").warning("Agent failed for '%s': %s", citation[:50], exc)
         return None
 
 
@@ -264,7 +267,7 @@ def _agent_verdict_to_layers(
             [AlternativeSuggestion(suggestion=av.alternative_citation)]
             if av.alternative_citation else []
         ),
-        agent_model=f"nemotron-super (tools:{','.join(av.tool_calls_log)})",
+        agent_model=f"{av.provider_used} (tools:{','.join(av.tool_calls_log)})",
     )
 
     return layer1, layer2, context_analysis
