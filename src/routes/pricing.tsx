@@ -12,6 +12,16 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
+import {
+  TIERS_LIST,
+  TIERS,
+  computeBuyerEconomics,
+  buyerScenarios,
+  formatGBP,
+  CONSTANTS,
+  type BuyerInputs,
+  type TierId,
+} from "@/lib/pricing";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -33,77 +43,37 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
 });
 
-const GBP = (n: number) =>
-  new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(Math.round(n));
-
-type PlanId = "junior" | "chambers" | "firm";
-
-const PLANS: {
-  id: PlanId;
-  name: string;
-  forWho: string;
-  monthly: number;
-  annual: number;
-  facts: string[];
-  featured?: boolean;
-}[] = [
-  {
-    id: "junior",
-    name: "Junior advocate",
-    forWho: "One barrister checking their own filings.",
-    monthly: 49,
-    annual: 39,
-    facts: [
-      "Up to 20 skeleton scans / month",
-      "Existence + application + good-law checks",
-      "Audit trail hash on every report",
-      "Corpus infra cost: ~£6/mo, absorbed",
-    ],
-  },
-  {
-    id: "chambers",
-    name: "Chambers",
-    forWho: "A set sharing review standards across counsel.",
-    monthly: 290,
-    annual: 232,
-    featured: true,
-    facts: [
-      "Up to 200 scans / month, pooled across seats",
-      "Shared treatment timelines + coverage flags",
-      "Clio case-treatment integration",
-      "Corpus infra cost: ~£40/mo, absorbed",
-    ],
-  },
-  {
-    id: "firm",
-    name: "Firm / scale",
-    forWho: "Litigation teams filing at volume.",
-    monthly: 950,
-    annual: 760,
-    facts: [
-      "Unlimited scans, fair-use throttling",
-      "SSO, per-matter access controls",
-      "Priority corpus refresh + SLA",
-      "Dedicated infra, usage reported monthly",
-    ],
-  },
-];
-
 function PlanCards({
   annual,
   onChoose,
 }: {
   annual: boolean;
-  onChoose: (id: PlanId) => void;
+  onChoose: (id: TierId) => void;
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {PLANS.map((p) => {
-        const price = annual ? p.annual : p.monthly;
+    <div className="grid gap-6 lg:grid-cols-4">
+      {TIERS_LIST.map((p) => {
+        const price = p.pricePerSeatMonthly
+          ? p.pricePerSeatMonthly.value
+          : annual
+            ? p.priceMonthly!.value * p.annualFactor.value
+            : p.priceMonthly!.value;
+        const priceSuffix = p.pricePerSeatMonthly
+          ? "/abogado/mes"
+          : annual
+            ? "/mo · anual"
+            : "/mo";
+
+        const capacityLine = p.scanCapacity
+          ? `Hasta ${p.scanCapacity.value} scans/mes`
+          : `Fair-use ${p.scanCapacityPerSeat!.value} scans/abogado/mes`;
+
+        const facts = [
+          capacityLine,
+          "Existence + application + good-law checks",
+          "Audit trail hash on every report",
+        ];
+
         return (
           <div
             key={p.id}
@@ -134,14 +104,14 @@ function PlanCards({
                   p.featured ? "text-accent-lime" : "text-ink"
                 }`}
               >
-                {GBP(price)}
+                {formatGBP(price)}
               </span>
               <span className={`text-sm ${p.featured ? "text-paper/60" : "text-n500"}`}>
-                /mo{annual ? ", billed annually" : ""}
+                {priceSuffix}
               </span>
             </div>
             <ul className="mt-6 flex-1 space-y-3 text-sm">
-              {p.facts.map((f) => (
+              {facts.map((f) => (
                 <li key={f} className="flex gap-2">
                   <Check
                     className={`mt-0.5 h-4 w-4 shrink-0 ${
@@ -220,37 +190,47 @@ function ReturnCalculator({
   setPlanId,
   annual,
 }: {
-  planId: PlanId;
-  setPlanId: (id: PlanId) => void;
+  planId: TierId;
+  setPlanId: (id: TierId) => void;
   annual: boolean;
 }) {
   const [filings, setFilings] = useState(12);
   const [hoursPerFiling, setHoursPerFiling] = useState(2.5);
   const [rate, setRate] = useState(180);
-  // Honesty knob: how much of that manual checking time TraceIt truly removes.
   const [automation, setAutomation] = useState(65);
+  const [seats, setSeats] = useState(793);
+  const [realization, setRealization] = useState(50);
 
-  const plan = PLANS.find((p) => p.id === planId)!;
-  const cost = annual ? plan.annual : plan.monthly;
+  const tier = TIERS[planId];
 
-  const compute = (autoPct: number) => {
-    const hoursSaved = filings * hoursPerFiling * (autoPct / 100);
-    const value = hoursSaved * rate;
-    const net = value - cost;
-    const roi = cost > 0 ? net / cost : 0;
-    // Break-even: filings needed for saved time to cover the monthly cost.
-    const valuePerFiling = hoursPerFiling * (autoPct / 100) * rate;
-    const breakevenFilings = valuePerFiling > 0 ? cost / valuePerFiling : Infinity;
-    return { hoursSaved, value, net, roi, breakevenFilings };
+  const inputs: BuyerInputs = {
+    tierId: planId,
+    seats: planId === "enterprise" ? seats : 1,
+    filingsPerSeatMonth: filings,
+    hoursPerFiling,
+    blendedRate: rate,
+    automationPct: automation / 100,
+    valueRealizationPct: realization / 100,
+    includeRiskEV: false,
+    billingCycle: annual ? "annual" : "monthly",
   };
 
-  const base = useMemo(
-    () => compute(automation),
+  const eco = useMemo(
+    () => computeBuyerEconomics(inputs, tier),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filings, hoursPerFiling, rate, automation, cost],
+    [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
   );
-  const conservative = compute(Math.max(20, automation - 25));
-  const optimistic = compute(Math.min(100, automation + 20));
+
+  const scen = useMemo(
+    () => buyerScenarios(inputs, tier),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
+  );
+
+  const displayedRoi =
+    eco.buyerRoiPct !== null && eco.buyerRoiPct >= 0
+      ? `${Math.round(eco.buyerRoiPct * 100)}%`
+      : "—";
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -260,22 +240,61 @@ function ReturnCalculator({
           <Calculator className="h-4 w-4" /> Your numbers
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
-          {PLANS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPlanId(p.id)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                p.id === planId
-                  ? "border-ink bg-ink text-paper"
-                  : "border-n300 text-n500 hover:border-ink"
-              }`}
-            >
-              {p.name} · {GBP(annual ? p.annual : p.monthly)}/mo
-            </button>
-          ))}
+          {TIERS_LIST.map((p) => {
+            const tierPrice = p.pricePerSeatMonthly
+              ? p.pricePerSeatMonthly.value
+              : annual
+                ? p.priceMonthly!.value * p.annualFactor.value
+                : p.priceMonthly!.value;
+            const priceSuffix = p.pricePerSeatMonthly ? "/seat" : "/mo";
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPlanId(p.id)}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  p.id === planId
+                    ? "border-ink bg-ink text-paper"
+                    : "border-n300 text-n500 hover:border-ink"
+                }`}
+              >
+                {p.name} · {formatGBP(tierPrice)}{priceSuffix}
+              </button>
+            );
+          })}
         </div>
+
+        {/* White & Case preset */}
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => {
+              setPlanId("enterprise");
+              setSeats(793);
+              setRate(600);
+              setFilings(3);
+              setHoursPerFiling(2.5);
+              setAutomation(65);
+              setRealization(50);
+            }}
+            className="rounded-lg border border-action px-3 py-1.5 text-xs font-semibold text-action"
+          >
+            Cargar caso White &amp; Case
+          </button>
+        </div>
+
         <div className="mt-7 space-y-7">
+          {planId === "enterprise" && (
+            <Field
+              label="Abogados (asientos)"
+              hint="Número de asientos de la firma en TraceIt."
+              value={seats}
+              onChange={setSeats}
+              min={1}
+              max={2643}
+              step={1}
+            />
+          )}
           <Field
             label="Filings per month"
             hint="Skeleton arguments / pleadings you run through review."
@@ -315,6 +334,16 @@ function ReturnCalculator({
             step={5}
             suffix="%"
           />
+          <Field
+            label="Realización: % de horas ahorradas que se vuelven £"
+            hint="Solo cuenta si esas horas se re-facturan o liberan capacidad billable."
+            value={realization}
+            onChange={setRealization}
+            min={0}
+            max={100}
+            step={5}
+            suffix="%"
+          />
         </div>
       </div>
 
@@ -324,27 +353,27 @@ function ReturnCalculator({
           <TrendingUp className="h-4 w-4" /> Your return, live
         </div>
         <div className="mt-5 grid grid-cols-2 gap-4">
-          <Metric label="Hours saved / mo" value={`${base.hoursSaved.toFixed(1)} h`} />
-          <Metric label="Time value / mo" value={GBP(base.value)} />
-          <Metric label="Plan cost / mo" value={GBP(cost)} />
+          <Metric label="Hours saved / mo" value={`${eco.hoursSavedMonthly.toFixed(1)} h`} />
+          <Metric label="Time value / mo" value={formatGBP(eco.realizedTimeValueMonthly)} />
+          <Metric label="Plan cost / mo" value={formatGBP(eco.effectiveLicenseMonthly)} />
           <Metric
             label="Net benefit / mo"
-            value={GBP(base.net)}
-            highlight={base.net >= 0}
+            value={formatGBP(eco.netBenefitMonthly)}
+            highlight={eco.netBenefitMonthly >= 0}
           />
         </div>
         <div className="mt-5 rounded-xl bg-ink-700 p-5">
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-paper/70">Return on the plan</span>
             <span className="font-display text-3xl font-semibold text-accent-lime">
-              {base.roi >= 0 ? `${Math.round(base.roi * 100)}%` : "—"}
+              {displayedRoi}
             </span>
           </div>
           <p className="mt-2 text-sm text-paper/70">
             Break-even at{" "}
             <span className="font-mono text-paper">
-              {Number.isFinite(base.breakevenFilings)
-                ? base.breakevenFilings.toFixed(1)
+              {Number.isFinite(eco.buyerBreakEvenFilings)
+                ? eco.buyerBreakEvenFilings
                 : "—"}
             </span>{" "}
             filings/month. You scan {filings}.
@@ -357,9 +386,9 @@ function ReturnCalculator({
             Sensitivity: net benefit / mo
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <Scenario name="Conservative" value={GBP(conservative.net)} />
-            <Scenario name="Base" value={GBP(base.net)} featured />
-            <Scenario name="Optimistic" value={GBP(optimistic.net)} />
+            <Scenario name="Conservative" value={formatGBP(scen.conservative.netBenefitMonthly)} />
+            <Scenario name="Base" value={formatGBP(scen.base.netBenefitMonthly)} featured />
+            <Scenario name="Optimistic" value={formatGBP(scen.optimistic.netBenefitMonthly)} />
           </div>
         </div>
 
@@ -445,21 +474,30 @@ function DemandSection() {
         </div>
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
           <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
-            <p className="font-display text-4xl font-semibold text-accent-lime">~1 in 6</p>
+            <p className="font-display text-4xl font-semibold text-accent-lime">
+              {Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}–
+              {Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%
+            </p>
             <p className="mt-3 text-sm text-paper/80">
-              rate at which leading LLMs hallucinate legal citations.
+              hallucination rate in legal AI tools — Lexis+ AI ({Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}%)
+              and Westlaw AI ({Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%) in independent Stanford testing.
+              General LLMs reach {Math.round(CONSTANTS.GENERAL_LLM_HALLUCINATION_RATE.value * 100)}%+ on legal citations.
             </p>
             <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-              Verified · Stanford HAI
+              Verified · Stanford RegLab 2024
             </p>
           </div>
           <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
             <p className="font-display text-4xl font-semibold text-accent-lime">CPR r.44.11</p>
             <p className="mt-3 text-sm text-paper/80">
-              wasted-costs exposure for putting bad authority before the court.
+              wasted-costs exposure for putting bad authority before the court.{" "}
+              <strong>Ayinde v Haringey [2025] EWHC 1383</strong>: court sanctioned AI-fabricated
+              citations, triggering SRA/BSB referrals. Direct wasted costs:{" "}
+              {formatGBP(CONSTANTS.DIRECT_WASTED_COSTS_PER_INCIDENT.value)} per incident —
+              reputational exposure on top.
             </p>
             <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-              Verified · Civil Procedure Rules
+              Verified · Civil Procedure Rules · Ayinde [2025] EWHC 1383
             </p>
           </div>
           <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
@@ -495,9 +533,9 @@ function Honesty() {
       note: "Corpus/infra costs shown per plan are our real internal estimates, absorbed into price.",
     },
     {
-      label: "Hallucination rate (~1 in 6) & CPR r.44.11",
+      label: `Hallucination rates (${Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}–${Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%) & CPR r.44.11`,
       status: "Verified",
-      note: "Cited to Stanford HAI and the Civil Procedure Rules respectively.",
+      note: `Cited to ${CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.source} and ${CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.source} respectively. Wasted costs figure from ${CONSTANTS.DIRECT_WASTED_COSTS_PER_INCIDENT.source}.`,
     },
     {
       label: "Calculator outputs",
@@ -543,7 +581,7 @@ function Honesty() {
 
 function PricingPage() {
   const [annual, setAnnual] = useState(true);
-  const [planId, setPlanId] = useState<PlanId>("chambers");
+  const [planId, setPlanId] = useState<TierId>("chambers");
   const reduce = useReducedMotion();
 
   return (
