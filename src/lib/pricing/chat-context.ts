@@ -1,8 +1,5 @@
-import { CONSTANTS, DISCLAIMER, MODEL_AS_OF, TIERS } from "./constants";
-import { computeBuyerEconomics } from "./buyer";
-import { computeSellerEconomics } from "./seller";
-import { buyerScenarios, sellerScenarios } from "./scenarios";
-import { INPUT_BOUNDS, toBuyerInputs, toSellerInputs } from "./inputs";
+import { CONSTANTS, DISCLAIMER, MODEL_AS_OF } from "./constants";
+import { INPUT_BOUNDS } from "./inputs";
 import { CAPTURE_STANCES } from "./stances";
 import { computeBusinessCase } from "./business-case";
 import type { CalculatorInputs, ModelSnapshot } from "./types";
@@ -12,20 +9,13 @@ import type { CalculatorInputs, ModelSnapshot } from "./types";
  * deterministically from `inputs`; the model never produces these numbers.
  */
 export function buildSnapshot(inputs: CalculatorInputs): ModelSnapshot {
-  const tier = TIERS[inputs.tier];
-  const buyerInputs = toBuyerInputs(inputs);
-  const sellerInputs = toSellerInputs(inputs);
   return {
     asOf: MODEL_AS_OF,
-    tier: inputs.tier,
+    capacityTier: inputs.capacityTier,
     inputs,
     bounds: INPUT_BOUNDS,
     captureStances: CAPTURE_STANCES,
     businessCase: computeBusinessCase(inputs),
-    buyer: computeBuyerEconomics(buyerInputs, tier),
-    seller: computeSellerEconomics(sellerInputs, tier),
-    buyerScenarios: buyerScenarios(buyerInputs, tier),
-    sellerScenarios: sellerScenarios(sellerInputs, tier),
     constants: { ...CONSTANTS },
     disclaimer: DISCLAIMER,
   };
@@ -54,20 +44,18 @@ export function buildSystemPrompt(snapshot: ModelSnapshot): string {
     "",
     "DRIVING THE CALCULATOR:",
     "When the user asks you to change an input or to run a 'what if' (e.g. 'try 200 lawyers",
-    "at £400/h', 'switch to enterprise', 'make it monthly'), DO NOT compute the result.",
+    "at £400/h', 'firm-wide', 'be conservative'), DO NOT compute the result.",
     "Instead, emit a single fenced JSON block, exactly:",
     '```json',
     '{"action":"set_inputs","inputs":{ ... only the keys you are changing ... }}',
     '```',
     "Valid input keys (snapshot.inputs holds current values; snapshot.bounds holds min/max/step):",
-    "- tier: 'junior' | 'chambers' | 'firm' | 'enterprise'",
-    "- billingCycle: 'monthly' | 'annual'",
+    "- capacityTier: 'pilot' | 'practice' | 'division' | 'firmwide' (deployment size — drives cost)",
     "- seats, filingsPerMonth, hoursPerFiling, blendedRate: numbers",
     "- automationPct, valueRealizationPct: numbers in percent (0..100)",
     "When the user names a posture ('be conservative', 'optimistic case'), set BOTH",
     "automationPct and valueRealizationPct from the matching entry in snapshot.captureStances.",
-    "Respect snapshot.bounds; out-of-range values are clamped. To change seats meaningfully,",
-    "set tier to 'enterprise' (other tiers are single-seat). After you emit the block the engine",
+    "Respect snapshot.bounds; out-of-range values are clamped. After you emit the block the engine",
     "recomputes and you receive a fresh MODEL_SNAPSHOT — only THEN state the new outputs.",
     "In the visible text, briefly say which inputs you are setting (not the outputs).",
     "",

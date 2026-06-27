@@ -5,8 +5,8 @@ export { computeSellerEconomics, effectiveLicenseMonthly, tierCapacity } from ".
 export { buyerScenarios, sellerScenarios } from "./scenarios";
 export { buildSnapshot, buildSystemPrompt } from "./chat-context";
 export {
-  INPUT_BOUNDS, DEFAULT_INPUTS, TIER_IDS, CalculatorActionSchema,
-  clampInputs, applyAction, parseInputsAction, toBuyerInputs, toSellerInputs,
+  INPUT_BOUNDS, DEFAULT_INPUTS, CAPACITY_TIER_IDS, CalculatorActionSchema,
+  clampInputs, applyAction, parseInputsAction,
   describeChanges, changedKeys,
 } from "./inputs";
 export type { CalculatorAction, NumericInputKey, ParsedReply } from "./inputs";
@@ -14,6 +14,8 @@ export { CAPTURE_STANCES, effectiveCapturePct, matchStance } from "./stances";
 export type { CaptureStanceId } from "./stances";
 export { computeBusinessCase } from "./business-case";
 export { computeImplementation, computeRunCost } from "./cost-model";
+export { CAPACITY_TIERS, computeCapacityCost, platformBuildTotal } from "./capacity";
+export type { CapacityTier, CapacityCost } from "./capacity";
 export { formatGBP, formatPct, formatRatio, formatMonths } from "./format";
 
 import { TIERS } from "./constants";
