@@ -20,6 +20,10 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Package manager: npm is the source of truth for CI (package-lock.json).
+# bun.lock is ignored to avoid dual-lockfile drift on Cloudflare builds.
+bun.lock
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
