@@ -1,0 +1,22 @@
+SKELETON ARGUMENT ON INTERIM RELIEF
+TEST DOCUMENT 05 (matching robustness: form mismatch, typo, name-only)
+
+1. Interim injunction. The governing guidance is American Cyanamid Co v Ethicon
+Ltd [1975] AC 396: is there a serious question to be tried, and where does the
+balance of convenience lie. (NOTE: the corpus holds this case under the neutral
+citation [1975] UKHL 1 — it must still match by name.)
+
+2. Duty of care. See Caparo Industries v Dickman (cited by name only, with no
+neutral citation) for the three-stage test.
+
+3. Negligent misstatement. See Hedley Burne & Co v Heller [1964] AC 465 (NOTE:
+the party name is deliberately misspelt "Burne" for "Byrne" to test tolerance).
+
+4. Foundational principle. Donoghue v Stevenson [1932] AC 562; also cited in its
+parallel form M'Alister (or Donoghue) v Stevenson — the same decision.
+
+TABLE OF AUTHORITIES
+- American Cyanamid Co v Ethicon Ltd [1975] AC 396
+- Caparo Industries v Dickman
+- Hedley Burne & Co v Heller [1964] AC 465
+- Donoghue v Stevenson [1932] AC 562

@@ -1,9 +1,12 @@
 # secrets + local env
 .env
+.env.local
 .venv/
 __pycache__/
 *.pyc
 
-# data (large; not versioned)
-data/
+# data (large; not versioned) — keep only the small fixtures
+data/*
+!data/citations.json
+!data/skeleton_argument.pdf
 *.zip

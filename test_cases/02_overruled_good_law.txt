@@ -1,0 +1,25 @@
+ADVICE ON LIABILITY — Defective premises and pure economic loss
+TEST DOCUMENT 02 (good-law / subsequent-treatment trap)
+
+1. The issue is whether the developer owes a duty in negligence for the cost of
+repairing a defective foundation, that loss being purely economic.
+
+2. We submit the developer is liable. A builder and a local authority owe a duty
+of care in respect of defective building work under Anns v Merton London Borough
+Council [1978] AC 728, applying a two-stage test of proximity followed by policy.
+That duty was first imposed on a builder in Dutton v Bognor Regis Urban District
+Council [1972] 1 QB 373.
+
+3. On that authority the recoverable loss includes the cost of averting a danger
+to the health and safety of the occupiers created by the defect.
+
+4. We acknowledge that the defendant will rely on Murphy v Brentwood District
+Council [1991] 1 AC 398, and on the treatment of pure economic loss in Caparo
+Industries plc v Dickman [1990] 2 AC 605, but we submit the Anns approach is to
+be preferred and remains good law.
+
+TABLE OF AUTHORITIES
+- Anns v Merton London Borough Council [1978] AC 728
+- Dutton v Bognor Regis Urban District Council [1972] 1 QB 373
+- Murphy v Brentwood District Council [1991] 1 AC 398
+- Caparo Industries plc v Dickman [1990] 2 AC 605

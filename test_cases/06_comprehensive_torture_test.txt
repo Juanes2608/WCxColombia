@@ -1,0 +1,44 @@
+IN THE HIGH COURT OF JUSTICE — KING'S BENCH DIVISION (COMMERCIAL COURT)
+Brightwater Logistics plc v Norvell Components Ltd
+CLAIMANT'S SKELETON ARGUMENT — TEST DOCUMENT 06 (full mix, all verdict types)
+
+GROUND 1 — Inducing breach of contract
+1. The defendant knowingly induced the claimant's supplier to breach its
+exclusive supply agreement. The tort is that in Lumley v Gye (1853) 2 E&B 216,
+as restated for the modern law of economic torts in OBG Ltd v Allan [2007] UKHL
+21.
+
+GROUND 2 — Duty of care in respect of economic loss
+2. The defendant also owed the claimant a duty of care. The applicable framework
+is the three-stage test in Caparo Industries plc v Dickman [1990] 2 AC 605. The
+broader two-stage approach in Anns v Merton London Borough Council [1978] AC 728
+remains available to the court and supports the imposition of a duty here.
+
+GROUND 3 — Quantum
+3. The claimant is entitled to the profits it would have earned on the contract,
+for which it relies on Anglia Television Ltd v Reed [1972] 1 QB 60 as authority
+for the recovery of lost future profits. Recoverability is bounded by Hadley v
+Baxendale (1854) 9 Ex 341. The claimant additionally seeks gain-based relief by
+reference to Wrotham Park Estate Co Ltd v Parkside Homes Ltd [1974] 1 WLR 798,
+and exemplary damages within the categories identified in Rookes v Barnard
+[1964] AC 1129.
+
+GROUND 4 — Interim injunction
+4. The claimant seeks interim relief on the test in American Cyanamid Co v
+Ethicon Ltd [1975] AC 396. The displacement of a long-term exclusive supplier
+constitutes irreparable harm, as held in Calderwood Shipping Ltd v Astra Bulk
+Carriers SA [2021] EWHC 1180 (Comm) and in Pemberton Aerospace Systems Ltd v
+Delta Global Ventures Inc [2023] EWHC 892 (TCC).
+
+TABLE OF AUTHORITIES
+- Lumley v Gye (1853) 2 E&B 216
+- OBG Ltd v Allan [2007] UKHL 21
+- Caparo Industries plc v Dickman [1990] 2 AC 605
+- Anns v Merton London Borough Council [1978] AC 728
+- Anglia Television Ltd v Reed [1972] 1 QB 60
+- Hadley v Baxendale (1854) 9 Ex 341
+- Wrotham Park Estate Co Ltd v Parkside Homes Ltd [1974] 1 WLR 798
+- Rookes v Barnard [1964] AC 1129
+- American Cyanamid Co v Ethicon Ltd [1975] AC 396
+- Calderwood Shipping Ltd v Astra Bulk Carriers SA [2021] EWHC 1180 (Comm)
+- Pemberton Aerospace Systems Ltd v Delta Global Ventures Inc [2023] EWHC 892 (TCC)
