@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import type { CitationResult, VerifyResult } from "@/lib/types";
+import { getReport } from "@/lib/api-client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScopeBanner } from "@/components/citationguard/ScopeBanner";
 import { DegradedNotice } from "@/components/citationguard/DegradedNotice";
@@ -32,16 +33,32 @@ function ResultsPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // Fast path: result handed over from the scan page via sessionStorage.
     const raw = sessionStorage.getItem(`result-${matterId}`);
-    if (!raw) {
-      setMissing(true);
-      return;
+    if (raw) {
+      try {
+        setResult(JSON.parse(raw) as VerifyResult);
+        return;
+      } catch {
+        // Corrupt cache — fall through to fetching from the backend.
+      }
     }
-    try {
-      setResult(JSON.parse(raw) as VerifyResult);
-    } catch {
-      setMissing(true);
-    }
+
+    // Fallback: refresh / shared link — fetch the stored report from the backend.
+    let cancelled = false;
+    getReport(matterId)
+      .then((report) => {
+        if (cancelled) return;
+        setResult(report);
+        sessionStorage.setItem(`result-${matterId}`, JSON.stringify(report));
+      })
+      .catch(() => {
+        if (!cancelled) setMissing(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [matterId]);
 
   if (missing) {

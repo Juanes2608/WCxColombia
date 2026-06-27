@@ -1,13 +1,15 @@
 // TraceIt — API client.
-// Currently a MOCK implementation. To wire a real backend, replace the bodies of
-// verifyCitations() and healthCheck() with fetch() calls to NEXT_PUBLIC_API_URL;
-// the response shapes (src/lib/types.ts) are the contract and must not change.
+// Talks to the FastAPI backend (see backend `app/api/routers`).
+// The base URL comes from VITE_API_URL (the Cloudflare tunnel / deployed backend).
+// The response shapes in src/lib/types.ts are the contract and must match the backend.
 
 import type { HealthStatus, VerifyResult } from "./types";
-import { buildMockResult } from "./mock-data";
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const ACCEPTED_EXTENSIONS = [".pdf", ".txt"] as const;
+
+// Strip trailing slashes so `${API_BASE}/api/verify` never doubles up.
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
@@ -18,20 +20,43 @@ export class ApiError extends Error {
   }
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function requireApiBase(): string {
+  if (!API_BASE) {
+    throw new ApiError(
+      0,
+      "Backend URL is not configured. Set VITE_API_URL and rebuild the app.",
+    );
+  }
+  return API_BASE;
+}
+
+/** Best-effort extraction of FastAPI's `{ "detail": "..." }` error body. */
+async function readDetail(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { detail?: unknown };
+    return typeof body.detail === "string" ? body.detail : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function healthCheck(): Promise<HealthStatus> {
-  await delay(200);
-  return {
-    status: "ok",
-    neo4j: "connected",
-    legislation_gov_uk: "reachable",
-  };
+  const base = requireApiBase();
+  let res: Response;
+  try {
+    res = await fetch(`${base}/health`, { method: "GET" });
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, "Health check failed.");
+  }
+  return (await res.json()) as HealthStatus;
 }
 
 export async function verifyCitations(file: File): Promise<VerifyResult> {
+  const base = requireApiBase();
+
   // Client-side validation mirrors what the backend enforces.
   const name = file.name.toLowerCase();
   const okExt = ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
@@ -42,8 +67,44 @@ export async function verifyCitations(file: File): Promise<VerifyResult> {
     throw new ApiError(413, "File too large — maximum 20 MB.");
   }
 
-  // Simulate scan latency proportional to size.
-  await delay(1400 + Math.min(file.size / 6000, 2200));
+  const form = new FormData();
+  form.append("file", file);
 
-  return buildMockResult(file);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/verify`, { method: "POST", body: form });
+  } catch {
+    throw new ApiError(
+      0,
+      "Could not reach the verification service. Check the connection and try again.",
+    );
+  }
+
+  if (!res.ok) {
+    const detail = await readDetail(res);
+    throw new ApiError(res.status, detail ?? "Verification failed.");
+  }
+
+  return (await res.json()) as VerifyResult;
+}
+
+/**
+ * Retrieve a previously computed report by matter_id (GET /api/report/{matter_id}).
+ * Backed by an in-memory store on the server (last 100 reports, cleared on restart).
+ */
+export async function getReport(matterId: string): Promise<VerifyResult> {
+  const base = requireApiBase();
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/report/${encodeURIComponent(matterId)}`);
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (res.status === 404) {
+    throw new ApiError(404, "Report not found.");
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, "Could not load report.");
+  }
+  return (await res.json()) as VerifyResult;
 }
