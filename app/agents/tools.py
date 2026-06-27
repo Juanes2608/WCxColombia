@@ -1,27 +1,28 @@
 """
-Agent tool definitions and executor.
+Agent tool definitions and executor for TraceIT CitationAgent.
 
-Tools are the deterministic layer — they query Neo4j, legislation.gov.uk,
-and the document text. The CitationAgent (Nemotron) decides which tools to
-call and in what order. Tool results are always factual; the model does
-the reasoning on top.
+Tools are the deterministic layer — they query Neo4j, Cellar (via the corpus port),
+and the document text.  The CitationAgent decides which tools to call and in what
+order.  Tool results are always factual; the model does the reasoning on top.
 
-Tools available:
-  lookup_corpus            — does this case exist in the corpus?
-  get_document_context     — what does the document say around this citation?
-  check_treatment_history  — is the case still good law?
-  find_supporting_authority — which cases support a given legal proposition?
-  submit_verdict           — agent's final answer (ends the loop)
+Tools:
+  lookup_corpus             — does this case exist in the corpus?
+  get_document_context      — what does the skeleton say around this citation?
+  get_judgment_passages     — retrieve judgment paragraphs from Neo4j (holds the ratio)
+  check_treatment_history   — is the case still good law?
+  find_supporting_authority — which cases support a given proposition? (MISAPPLIED only)
+  submit_verdict            — agent's final answer (ends the loop)
 """
 from __future__ import annotations
 
-import json
 import re
 import logging
 
+from app.ports.corpus import Passage
+
 logger = logging.getLogger("traceit.agent.tools")
 
-_CONTEXT_WINDOW = 700  # chars each side of the citation
+_CONTEXT_WINDOW = 700   # chars each side of the citation in the skeleton
 
 
 # ── Tool JSON schemas (sent to the model) ────────────────────────────────────
@@ -33,16 +34,14 @@ TOOL_SCHEMAS = [
             "name": "lookup_corpus",
             "description": (
                 "Search the verified UK case law database for a citation. "
-                "Returns the case's actual legal propositions, court, year, and status if found. "
-                "Returns found=false if no matching case exists in the database."
+                "Returns the case's court, domain, status, and legal propositions if found. "
+                "Returns found=false if no matching case exists — that is the only basis "
+                "for a FABRICATED verdict."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "citation": {
-                        "type": "string",
-                        "description": "The case citation to search for.",
-                    }
+                    "citation": {"type": "string", "description": "The case citation to search for."}
                 },
                 "required": ["citation"],
             },
@@ -53,19 +52,38 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_document_context",
             "description": (
-                "Retrieve the text from the document surrounding a specific citation. "
+                "Retrieve the text from the skeleton surrounding a specific citation. "
                 "Returns the paragraph(s) where the citation appears, showing how "
-                "the author uses it in context."
+                "the author uses it and what proposition they attribute to the case."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "citation": {
-                        "type": "string",
-                        "description": "The citation to locate in the document.",
-                    }
+                    "citation": {"type": "string", "description": "The citation to locate in the skeleton."}
                 },
                 "required": ["citation"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_judgment_passages",
+            "description": (
+                "Retrieve judgment chunks for a case from Neo4j. "
+                "Each chunk has a 0-based 'chunk_no' index (not an official [47]-style number) "
+                "and ~900 chars of OCR-extracted text. There is no pre-labelled holding flag — "
+                "the HoldingJudge analyses the chunks separately after your loop. "
+                "Call this after lookup_corpus succeeds so the HoldingJudge can read what "
+                "the judge actually decided. "
+                "Returns an empty list when no passages are stored yet (graceful degradation)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "node_id": {"type": "string", "description": "The node_id returned by lookup_corpus."}
+                },
+                "required": ["node_id"],
             },
         },
     },
@@ -76,15 +94,13 @@ TOOL_SCHEMAS = [
             "description": (
                 "Check how a case has been treated in subsequent decisions. "
                 "Returns whether the case is GOOD_LAW, OVERRULED, or DISTINGUISHED, "
-                "and which cases overruled or distinguished it."
+                "and which cases overruled or distinguished it. "
+                "This is a deterministic graph query — never inferred by the model."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "node_id": {
-                        "type": "string",
-                        "description": "The node_id of the case (returned by lookup_corpus).",
-                    }
+                    "node_id": {"type": "string", "description": "The node_id returned by lookup_corpus."}
                 },
                 "required": ["node_id"],
             },
@@ -95,16 +111,23 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "find_supporting_authority",
             "description": (
-                "Search the case law database for cases that support a given legal proposition. "
-                "Returns candidate cases with their actual propositions for comparison."
+                "Only call this when the verdict is MISAPPLIED and you want to suggest "
+                "a better citation for the proposition the author actually needs. "
+                "Searches the corpus by proposition text and brief context using Neo4j full-text. "
+                "Returns candidate cases that are GOOD_LAW and genuinely support the proposition. "
+                "Do NOT call this for FABRICATED or VERIFIED citations."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "proposition": {
                         "type": "string",
-                        "description": "The legal proposition to find supporting authority for.",
-                    }
+                        "description": "The legal proposition the author needs to support.",
+                    },
+                    "domain": {
+                        "type": "string",
+                        "description": "Legal domain hint e.g. 'tort', 'contract' (optional).",
+                    },
                 },
                 "required": ["proposition"],
             },
@@ -120,11 +143,12 @@ TOOL_SCHEMAS = [
                 "properties": {
                     "verdict": {
                         "type": "string",
-                        "enum": ["FABRICATED", "MISAPPLIED", "VERIFIED"],
+                        "enum": ["FABRICATED", "MISAPPLIED", "VERIFIED", "UNVERIFIABLE"],
                         "description": (
-                            "FABRICATED: the case does not exist in the database. "
-                            "MISAPPLIED: the case exists but is cited for the wrong proposition. "
-                            "VERIFIED: the case exists, is good law, and is correctly applied."
+                            "FABRICATED: case not found in corpus. "
+                            "MISAPPLIED: case exists but cited for the wrong proposition. "
+                            "VERIFIED: case exists, is good law, and is correctly applied. "
+                            "UNVERIFIABLE: case exists but insufficient judgment text to assess application."
                         ),
                     },
                     "reason": {
@@ -138,15 +162,11 @@ TOOL_SCHEMAS = [
                     },
                     "proposition_cited": {
                         "type": "string",
-                        "description": "What the document claims this case establishes (for MISAPPLIED).",
+                        "description": "What the skeleton claims this case establishes (for MISAPPLIED).",
                     },
                     "proposition_actual": {
                         "type": "string",
                         "description": "What the case actually establishes (for MISAPPLIED).",
-                    },
-                    "alternative_citation": {
-                        "type": "string",
-                        "description": "A better citation that genuinely supports the proposition, if found.",
                     },
                 },
                 "required": ["verdict", "reason", "layer2_verdict"],
@@ -165,16 +185,18 @@ class ToolExecutor:
     All methods return JSON-serialisable dicts.
     """
 
-    def __init__(self, corpus, treatment, doc_text: str):
+    def __init__(self, corpus, treatment, doc_text: str) -> None:
         self._corpus    = corpus
         self._treatment = treatment
         self._doc_text  = doc_text
+        # Passages collected during the agent loop — returned to VerifyService
+        self.collected_passages: list[Passage] = []
 
     def execute(self, name: str, arguments: dict) -> dict:
-        """Dispatch a tool call by name."""
         dispatch = {
             "lookup_corpus":           self._lookup_corpus,
             "get_document_context":    self._get_document_context,
+            "get_judgment_passages":   self._get_judgment_passages,
             "check_treatment_history": self._check_treatment_history,
             "find_supporting_authority": self._find_supporting_authority,
             "submit_verdict":          self._submit_verdict,
@@ -195,24 +217,86 @@ class ToolExecutor:
         if node is None:
             return {"found": False, "citation": citation}
         return {
-            "found": True,
+            "found":       True,
             "node_id":     node.node_id,
             "citation":    node.citation,
             "short_name":  node.short_name,
+            "domain":      node.domain,
             "status":      node.status,
             "propositions": node.propositions,
         }
 
     def _get_document_context(self, citation: str) -> dict:
         text = self._doc_text
+        found_quality = "none"
         pos = text.find(citation)
+
+        if pos != -1:
+            found_quality = "exact"
+        else:
+            normalized_citation = re.sub(r"\s+", " ", citation).strip()
+            normalized_text     = re.sub(r"\s+", " ", text)
+            norm_pos = normalized_text.find(normalized_citation)
+            if norm_pos != -1:
+                pos = norm_pos
+                found_quality = "whitespace_normalised"
+
+        if pos == -1:
+            first_party = citation.split(" v ")[0].strip()
+            first_party = re.sub(r"^\W+", "", first_party)
+            if len(first_party) >= 4:
+                m = re.search(re.escape(first_party), text, re.IGNORECASE)
+                if m:
+                    pos = m.start()
+                    found_quality = "partial_name"
+
         if pos == -1:
             fragment = re.sub(r"^\W+", "", citation)[:35]
             m = re.search(re.escape(fragment), text, re.IGNORECASE)
-            pos = m.start() if m else 0
+            if m:
+                pos = m.start()
+                found_quality = "fragment"
+            else:
+                pos = 0
+
         start = max(0, pos - _CONTEXT_WINDOW)
         end   = min(len(text), pos + len(citation) + _CONTEXT_WINDOW)
-        return {"context": text[start:end]}
+        return {
+            "context":        text[start:end],
+            "citation_found": found_quality != "none",
+            "match_quality":  found_quality,
+        }
+
+    def _get_judgment_passages(self, node_id: str) -> dict:
+        """
+        Retrieves judgment passages from Neo4j via the corpus port.
+        Stores them on self.collected_passages so VerifyService can pass them
+        to the HoldingJudge after the agent loop completes.
+        """
+        passages = self._corpus.find_passages(node_id)
+        self.collected_passages = passages   # captured for HoldingJudge
+
+        if not passages:
+            return {
+                "node_id":  node_id,
+                "passages": [],
+                "source":   "none",
+                "note":     "No judgment passages stored yet — HoldingJudge will use corpus proposition.",
+            }
+
+        return {
+            "node_id":  node_id,
+            "source":   passages[0].source if passages else "neo4j",
+            "count":    len(passages),
+            "note":     "Chunk indices are 0-based ETL offsets, not official [47]-style paragraph numbers.",
+            "passages": [
+                {
+                    "chunk_no": p.para_no,
+                    "text":     p.text[:300],   # truncate for agent context window
+                }
+                for p in sorted(passages, key=lambda x: x.para_no)
+            ],
+        }
 
     def _check_treatment_history(self, node_id: str) -> dict:
         hist = self._treatment.get_history(node_id)
@@ -223,35 +307,32 @@ class ToolExecutor:
             "source":           hist.source,
         }
 
-    def _find_supporting_authority(self, proposition: str) -> dict:
-        summaries = self._corpus.list_all()
-        query_words = set(re.sub(r"[^a-z\s]", "", proposition.lower()).split()) - {
-            "the", "a", "an", "is", "are", "was", "were", "of", "in", "to",
-            "for", "and", "or", "that", "this", "it", "by", "on", "at", "be",
-            "has", "have", "had", "with", "not", "from", "as", "its",
-        }
-
-        # Score each case by keyword overlap with the proposition
-        scored = []
-        for case in summaries:
-            prop_text = case.get("proposition", "").lower()
-            words_in_prop = set(re.sub(r"[^a-z\s]", "", prop_text).split())
-            overlap = len(query_words & words_in_prop)
-            if overlap > 0:
-                scored.append((overlap, case))
-
-        scored.sort(key=lambda x: x[0], reverse=True)
-        candidates = [c for _, c in scored[:8]]
-
-        # Fallback: return first 8 if no keyword overlap
-        if not candidates:
-            candidates = summaries[:8]
-
+    def _find_supporting_authority(self, proposition: str, domain: str | None = None) -> dict:
+        """
+        Queries the corpus (Neo4j full-text or CSV keyword fallback) for cases
+        that genuinely support the given proposition.  Uses the brief document
+        text as additional context so suggestions apply to the actual argument.
+        """
+        brief_context = self._doc_text[:2000]   # first 2 k chars as broad context
+        suggestions = self._corpus.find_suggestions(
+            proposition=proposition,
+            brief_context=brief_context,
+            domain=domain,
+            limit=6,
+        )
         return {
             "proposition_queried": proposition,
-            "candidates": candidates,
+            "candidates": [
+                {
+                    "citation":    s.citation,
+                    "short_name":  s.short_name,
+                    "proposition": s.proposition,
+                    "domain":      s.domain,
+                    "score":       round(s.score, 2),
+                }
+                for s in suggestions
+            ],
         }
 
     def _submit_verdict(self, **kwargs) -> dict:
-        # Signals the agent loop to stop — the data is captured upstream
         return {"acknowledged": True}

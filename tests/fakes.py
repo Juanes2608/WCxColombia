@@ -5,7 +5,7 @@ Import these directly in unit and integration tests — no IO, no network.
 from __future__ import annotations
 
 from app.ports.audit import IAuditLog
-from app.ports.corpus import CaseNode, ICorpusRepository
+from app.ports.corpus import CaseNode, ICorpusRepository, Passage, SuggestionResult
 from app.ports.document import IDocumentIngestor, IngestedDocument
 from app.ports.statutory import IStatutoryVerifier, StatutoryLookup
 from app.ports.treatment import ITreatmentRepository, TreatmentHistory
@@ -16,9 +16,11 @@ class InMemoryCorpus(ICorpusRepository):
         self,
         nodes: dict[str, CaseNode],
         misapplied: dict[str, str] | None = None,
+        passages: dict[str, list[Passage]] | None = None,
     ) -> None:
-        self._nodes = nodes
+        self._nodes     = nodes
         self._misapplied: dict[str, str] = misapplied or {}
+        self._passages: dict[str, list[Passage]] = passages or {}
 
     def lookup(self, citation_fragment: str) -> CaseNode | None:
         fragment_lower = citation_fragment.lower()
@@ -30,6 +32,34 @@ class InMemoryCorpus(ICorpusRepository):
 
     def get_misapplied_table(self) -> dict[str, str]:
         return dict(self._misapplied)
+
+    def find_passages(self, node_id: str) -> list[Passage]:
+        return list(self._passages.get(node_id, []))
+
+    def find_suggestions(
+        self,
+        proposition: str,
+        brief_context: str,
+        domain: str | None = None,
+        limit: int = 6,
+        exclude_node_id: str | None = None,
+    ) -> list[SuggestionResult]:
+        results = []
+        for node in self._nodes.values():
+            if node.status == "OVERRULED":
+                continue
+            if node.node_id == exclude_node_id:
+                continue
+            results.append(SuggestionResult(
+                node_id=node.node_id,
+                citation=node.citation,
+                short_name=node.short_name,
+                proposition=node.propositions[0] if node.propositions else "",
+                domain=node.domain,
+                bailii_url=node.bailii_url,
+                score=1.0,
+            ))
+        return results[:limit]
 
 
 class InMemoryTreatment(ITreatmentRepository):
@@ -81,4 +111,4 @@ class InMemoryAudit(IAuditLog):
         self._entries.append({"action": action, "ref": ref, "grounding": grounding})
 
     def digest(self) -> str:
-        return "a" * 64  # deterministic 64-char stub
+        return "a" * 64

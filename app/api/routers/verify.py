@@ -11,7 +11,6 @@ from app.services.verify_service import VerifyService, get_stored_result
 router = APIRouter(prefix="/api", tags=["verify"])
 
 _MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
-_ALLOWED_TYPES = {"application/pdf", "text/plain"}
 
 
 @router.post("/verify", response_model=VerifyResult, summary="Verify citations in a legal document")
@@ -20,12 +19,12 @@ def verify_document(
     service: VerifyService = Depends(get_verify_service),
 ) -> VerifyResult:
     """
-    Upload a legal document (PDF/TXT) and receive a citation integrity report.
+    Upload a legal document (PDF/TXT/DOCX) and receive a citation integrity report.
 
     - **Layer 1**: Deterministic corpus lookup (FABRICATED / MISAPPLIED / VERIFIED)
     - **Layer 2**: Neo4j treatment history (OVERRULED / DISTINGUISHED / GOOD_LAW)
+    - **Holding analysis**: LLM reads judgment chunks and identifies the ratio decidendi
     - **Statutory**: legislation.gov.uk live verification for statute citations
-    - **Financial**: Computed savings and risk exposure (never LLM-generated)
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is required.")

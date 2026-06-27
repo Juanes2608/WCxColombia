@@ -1,36 +1,36 @@
 """
-VerifyService — single orchestration point for the citation check pipeline.
+VerifyService — single orchestration point for the TraceIT citation pipeline.
 
-Layer 1 (deterministic):
-  regex extraction → corpus lookup → FABRICATED / MISAPPLIED / VERIFIED
+Pipeline (one pass per document):
+  1. Ingest          → extract text from PDF / TXT / DOCX
+  2. Extract         → deterministic regex → list of citations (case-law + statutes)
+  3a. Statutes       → legislation.gov.uk live check (no LLM)
+  3b. Case-law       → CitationAgent in parallel (ThreadPoolExecutor, 3 workers)
+                       Agent collects judgment passages via get_judgment_passages tool
+  4. HoldingJudge    → per citation: reads passages + brief context → HoldingAnalysis
+  5. Store + return  → VerifyResult held in memory by matter_id (last 100)
 
-Layer 2 (Neo4j, graceful degradation):
-  treatment history → OVERRULED / DISTINGUISHED / GOOD_LAW / UNAVAILABLE
-
-Statutory verification (legislation.gov.uk, graceful degradation):
-  section exists check → exists True/False/None
-
-Case-law citations are verified in parallel (ThreadPoolExecutor, max 4 workers)
-to reduce wall-clock time from ~3 min → ~40 s for a 12-citation document.
-
-The service depends exclusively on port interfaces (ABCs).
-It has no direct knowledge of Neo4j, httpx, or FastAPI.
+Invariants:
+  - FABRICATED is ONLY produced when corpus_lookup returns None.
+  - OVERRULED / DISTINGUISHED come exclusively from the treatment graph.
+  - The LLM (HoldingJudge) only reads and summarises — never decides existence.
 """
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
+from app.adapters.llm.holding_judge import analyse_holding
 from app.domain.citation_extractor import extract_citations
 from app.domain.models import (
-    AlternativeSuggestion,
     CitationResult,
-    ContextAnalysis,
     CorpusSource,
+    HoldingAnalysis,
     Layer1Result,
     Layer1Verdict,
     Layer2Result,
@@ -38,8 +38,6 @@ from app.domain.models import (
     StatutoryResult,
     VerifyResult,
 )
-from app.domain.risk_calculator import compute_financial_summary
-from app.adapters.llm.claude_client import generate_explanation
 from app.domain.verdict_engine import compute_layer1
 from app.ports.audit import IAuditLog
 from app.ports.corpus import ICorpusRepository
@@ -49,10 +47,11 @@ from app.ports.treatment import ITreatmentRepository
 
 logger = logging.getLogger("traceit.service")
 
-# ── In-memory result store for GET /api/report/{matter_id} ───────────────────
+# ── In-memory result + document store ────────────────────────────────────────
 _result_store: dict[str, VerifyResult] = {}
+_doc_store:    dict[str, str]          = {}
 _store_lock = threading.Lock()
-_MAX_STORED = 100  # keep last N results to avoid unbounded memory growth
+_MAX_STORED = 100
 
 
 def get_stored_result(matter_id: str) -> VerifyResult | None:
@@ -60,17 +59,24 @@ def get_stored_result(matter_id: str) -> VerifyResult | None:
         return _result_store.get(matter_id)
 
 
-def _store_result(matter_id: str, result: VerifyResult) -> None:
+def get_stored_document(matter_id: str) -> str | None:
+    with _store_lock:
+        return _doc_store.get(matter_id)
+
+
+def _store_result(matter_id: str, result: VerifyResult, doc_text: str = "") -> None:
     with _store_lock:
         _result_store[matter_id] = result
+        _doc_store[matter_id] = doc_text
         if len(_result_store) > _MAX_STORED:
             oldest = next(iter(_result_store))
             del _result_store[oldest]
+            _doc_store.pop(oldest, None)
 
 
-# ── Parallel worker limit ─────────────────────────────────────────────────────
-# 4 concurrent agent calls: balances speed vs OpenRouter rate limits.
-_AGENT_WORKERS = 4
+_AGENT_WORKERS = 3   # parallel citations; stays within Groq 30 RPM limit
+
+_BRIEF_CONTEXT_WINDOW = 700   # chars each side of citation for HoldingJudge
 
 
 @dataclass
@@ -85,7 +91,7 @@ class VerifyService:
         t0 = time.monotonic()
         matter_id = str(uuid.uuid4())
 
-        # 1. Ingest document
+        # 1. Ingest
         doc = self.ingestor.extract(pdf_bytes, filename)
         self.audit.record("ingest", matter_id, [
             f"source_type={doc.source_type}",
@@ -98,38 +104,32 @@ class VerifyService:
                 matter_id=matter_id,
                 total_citations=0,
                 results=[],
-                financial=compute_financial_summary([]),
                 processing_ms=int((time.monotonic() - t0) * 1000),
                 audit_trail_hash=self.audit.digest(),
             )
             _store_result(matter_id, result)
             return result
 
-        # 2. Extract citations (deterministic regex)
+        # 2. Extract citations
         extracted = extract_citations(doc.text)
         self.audit.record("extract", matter_id, [c.raw_text for c in extracted])
 
         # 3. Load MISAPPLIED table once (read-only — safe across threads)
         misapplied_table = self.corpus.get_misapplied_table()
 
-        # 4. Classify: statutes inline, case-law in parallel
-        ordered: dict[int, CitationResult] = {}
-        audit_msgs: dict[int, str] = {}
+        ordered:    dict[int, CitationResult] = {}
+        audit_msgs: dict[int, str]            = {}
 
-        # ── 4a. Statute citations (fast, no LLM) ─────────────────────────────
+        # ── 3a. Statute citations ─────────────────────────────────────────────
         for idx, cit in enumerate(extracted):
             if cit.citation_type != "statute":
                 continue
             lookup = self.statutory.verify_from_text(cit.raw_text)
             if lookup:
                 statutory = StatutoryResult(
-                    act=lookup.act,
-                    year=lookup.year,
-                    section=lookup.section,
-                    exists=lookup.exists,
-                    api_status=lookup.status_code,
-                    excerpt=lookup.excerpt,
-                    source_url=lookup.url,
+                    act=lookup.act, year=lookup.year, section=lookup.section,
+                    exists=lookup.exists, api_status=lookup.status_code,
+                    excerpt=lookup.excerpt, source_url=lookup.url,
                 )
                 layer1 = _statute_layer1(cit.raw_text, lookup)
             else:
@@ -145,17 +145,17 @@ class VerifyService:
                 layer1=layer1,
                 layer2=layer2,
                 statutory=statutory,
-                context_analysis=None,
+                holding_analysis=None,
             )
             audit_msgs[idx] = f"{cit.raw_text}:{layer1.verdict}"
 
-        # ── 4b. Case-law citations (parallel agents) ──────────────────────────
+        # ── 3b. Case-law citations (parallel agents) ──────────────────────────
         case_indices = {
             idx: cit for idx, cit in enumerate(extracted)
             if cit.citation_type != "statute"
         }
 
-        if case_indices and _nemotron_enabled():
+        if case_indices and _agents_enabled():
             with ThreadPoolExecutor(max_workers=_AGENT_WORKERS) as pool:
                 future_to_idx = {
                     pool.submit(
@@ -173,76 +173,103 @@ class VerifyService:
                     agent_verdict = future.result()
 
                     if agent_verdict is not None:
-                        layer1, layer2, context_analysis = _agent_verdict_to_layers(
-                            agent_verdict, cit.raw_text
-                        )
-                        if layer1.verdict != Layer1Verdict.VERIFIED:
-                            llm_text = generate_explanation(
-                                verdict=layer1.verdict.value,
-                                citation=cit.raw_text,
-                                proposition_cited=layer1.proposition_cited,
-                                proposition_actual=layer1.proposition_actual,
-                            )
-                            if llm_text:
-                                layer1.llm_explanation = llm_text
-                        # Attach corpus provenance (None for FABRICATED)
+                        layer1, layer2 = _agent_verdict_to_layers(agent_verdict, cit.raw_text)
+
+                        # Attach corpus provenance and complement Layer 2 when agent
+                        # returned NOT_CHECKED (one-shot providers skip treatment tool).
                         corpus_source = None
+                        corpus_node   = None
                         if layer1.verdict != Layer1Verdict.FABRICATED:
-                            node = self.corpus.lookup(cit.raw_text)
-                            corpus_source = _node_to_source(node)
+                            corpus_node   = self.corpus.lookup(cit.raw_text)
+                            corpus_source = _node_to_source(corpus_node)
+                            if layer2.verdict == Layer2Verdict.NOT_CHECKED and corpus_node:
+                                try:
+                                    hist = self.treatment.get_history(corpus_node.node_id)
+                                    layer2 = Layer2Result(
+                                        verdict=Layer2Verdict(hist.verdict),
+                                        overruled_by=hist.overruled_by,
+                                        distinguished_by=hist.distinguished_by,
+                                        source=hist.source,
+                                    )
+                                except (ValueError, AttributeError):
+                                    pass
+
+                        # 4. HoldingJudge (runs after agent; uses passages agent collected)
+                        holding_analysis = _run_holding_judge(
+                            citation=cit.raw_text,
+                            doc_text=doc.text,
+                            agent_verdict=agent_verdict,
+                            corpus_node=corpus_node,
+                            corpus=self.corpus,
+                        )
+
                         ordered[idx] = CitationResult(
                             raw_text=cit.raw_text,
                             corpus_source=corpus_source,
                             layer1=layer1,
                             layer2=layer2,
                             statutory=None,
-                            context_analysis=context_analysis,
+                            holding_analysis=holding_analysis,
                         )
                         audit_msgs[idx] = (
                             f"{cit.raw_text}:{layer1.verdict}"
-                            f" (agent:{agent_verdict.turns_used}t)"
+                            f" (agent:{agent_verdict.turns_used}t"
+                            f" mode:{holding_analysis.analysis_mode if holding_analysis else 'none'})"
                         )
                     else:
-                        # Agent failed → deterministic fallback for this citation
                         ordered[idx], audit_msgs[idx] = _deterministic_fallback(
-                            cit.raw_text, self.corpus, self.treatment, misapplied_table
+                            cit.raw_text, doc.text, self.corpus, self.treatment, misapplied_table
                         )
 
-        # Deterministic fallback for any case-law not yet resolved
-        # (happens when Nemotron is not configured)
+        # Deterministic fallback for citations not yet resolved
         for idx, cit in case_indices.items():
             if idx not in ordered:
                 ordered[idx], audit_msgs[idx] = _deterministic_fallback(
-                    cit.raw_text, self.corpus, self.treatment, misapplied_table
+                    cit.raw_text, doc.text, self.corpus, self.treatment, misapplied_table
                 )
 
-        # 5. Reconstruct ordered results + audit
+        # 5. Reconstruct ordered results + document context
         citation_results: list[CitationResult] = []
         for idx in range(len(extracted)):
             self.audit.record("citation_check", matter_id, [audit_msgs[idx]])
-            citation_results.append(ordered[idx])
+            cit_result = ordered[idx]
 
-        # 6. Financial summary (deterministic)
-        financial = compute_financial_summary(citation_results)
-        elapsed_ms = int((time.monotonic() - t0) * 1000)
+            # Attach document_context and char_pos
+            citation_text = cit_result.raw_text
+            pos = doc.text.find(citation_text)
+            if pos == -1:
+                norm_c = re.sub(r"\s+", " ", citation_text)
+                norm_d = re.sub(r"\s+", " ", doc.text)
+                pos = norm_d.find(norm_c)
+            if pos != -1:
+                start = max(0, pos - 400)
+                end   = min(len(doc.text), pos + len(citation_text) + 400)
+                cit_result.document_context  = doc.text[start:end]
+                cit_result.document_char_pos = pos
+                # Back-fill char_position in HoldingAnalysis brief_pointer
+                if (cit_result.holding_analysis
+                        and cit_result.holding_analysis.brief_pointer):
+                    cit_result.holding_analysis.brief_pointer.char_position = pos
+
+            citation_results.append(cit_result)
 
         result = VerifyResult(
             matter_id=matter_id,
             total_citations=len(citation_results),
             results=citation_results,
-            financial=financial,
-            processing_ms=elapsed_ms,
+            processing_ms=int((time.monotonic() - t0) * 1000),
             audit_trail_hash=self.audit.digest(),
         )
-        _store_result(matter_id, result)
+        _store_result(matter_id, result, doc.text)
         return result
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _nemotron_enabled() -> bool:
+def _agents_enabled() -> bool:
     from app.config import get_settings
-    return bool(get_settings().openrouter_api_key)
+    s = get_settings()
+    return bool(s.anthropic_api_key or s.groq_api_key or s.nvidia_api_key)
 
 
 def _run_agent(
@@ -251,7 +278,6 @@ def _run_agent(
     corpus: "ICorpusRepository",
     treatment: "ITreatmentRepository",
 ) -> "AgentVerdict | None":
-    """Run CitationAgent with Nemotron primary + Infermatic fallback. Thread-safe."""
     try:
         from app.agents.citation_agent import run_citation_agent
         from app.agents.tools import ToolExecutor
@@ -259,38 +285,114 @@ def _run_agent(
         s = get_settings()
         executor = ToolExecutor(corpus=corpus, treatment=treatment, doc_text=doc_text)
         return run_citation_agent(
-            citation           = citation,
-            doc_text           = doc_text,
-            executor           = executor,
-            api_key            = s.openrouter_api_key,
-            model              = s.openrouter_super_model,
-            infermatic_api_key = s.infermatic_api_key,
-            infermatic_model   = s.infermatic_model,
+            citation          = citation,
+            doc_text          = doc_text,
+            executor          = executor,
+            anthropic_api_key = s.anthropic_api_key,
+            anthropic_model   = s.anthropic_model,
+            groq_api_key      = s.groq_api_key,
+            groq_model        = s.groq_model,
+            nvidia_api_key    = s.nvidia_api_key,
+            nvidia_model      = s.nvidia_model,
         )
     except Exception as exc:
         logger.warning("Agent failed for '%s': %s", citation[:50], exc)
         return None
 
 
+def _run_holding_judge(
+    citation: str,
+    doc_text: str,
+    agent_verdict: "AgentVerdict",
+    corpus_node,
+    corpus: "ICorpusRepository",
+) -> HoldingAnalysis | None:
+    """
+    Run the HoldingJudge after the agent loop.
+    Only runs for VERIFIED and MISAPPLIED — FABRICATED has nothing to analyse.
+    """
+    if agent_verdict.verdict == "FABRICATED":
+        return None
+
+    # Brief context: ±700 chars around the citation in the skeleton
+    pos = doc_text.find(citation)
+    if pos == -1:
+        norm_c = re.sub(r"\s+", " ", citation)
+        norm_d = re.sub(r"\s+", " ", doc_text)
+        pos = norm_d.find(norm_c)
+    if pos != -1:
+        start = max(0, pos - _BRIEF_CONTEXT_WINDOW)
+        end   = min(len(doc_text), pos + len(citation) + _BRIEF_CONTEXT_WINDOW)
+        brief_context = doc_text[start:end]
+    else:
+        brief_context = doc_text[:1400]   # fallback: first 1400 chars
+
+    corpus_proposition = ""
+    domain = None
+    suggestions = None
+
+    if corpus_node:
+        corpus_proposition = corpus_node.propositions[0] if corpus_node.propositions else ""
+        domain = corpus_node.domain
+
+    # For MISAPPLIED or OVERRULED: fetch suggestions so the judge can include them.
+    # MISAPPLIED → wrong proposition; OVERRULED → case is bad law, lawyer needs a replacement.
+    needs_suggestions = (
+        agent_verdict.verdict == "MISAPPLIED"
+        or agent_verdict.layer2_verdict == "OVERRULED"
+    )
+    if needs_suggestions:
+        try:
+            suggestions = corpus.find_suggestions(
+                proposition=agent_verdict.proposition_cited or corpus_proposition,
+                brief_context=brief_context,
+                domain=domain,
+                limit=6,
+                exclude_node_id=corpus_node.node_id if corpus_node else None,
+            )
+        except Exception as exc:
+            logger.warning("find_suggestions failed for '%s': %s", citation[:50], exc)
+
+    # Prefer vector-filtered passages (most relevant to this specific claim).
+    # Falls back to agent_verdict.passages (all chunks) when vector search
+    # is unavailable or returns nothing — no change to existing behaviour.
+    if agent_verdict.passages:
+        try:
+            relevant = corpus.find_relevant_passages(
+                node_id=corpus_node.node_id if corpus_node else "",
+                claim_text=brief_context,
+                k=5,
+            )
+            passages_to_use = relevant if relevant else agent_verdict.passages
+        except Exception:
+            passages_to_use = agent_verdict.passages
+    else:
+        passages_to_use = agent_verdict.passages
+
+    try:
+        return analyse_holding(
+            citation=citation,
+            brief_context=brief_context,
+            passages=passages_to_use,
+            corpus_proposition=corpus_proposition,
+            suggestions=suggestions,
+            domain=domain,
+        )
+    except Exception as exc:
+        logger.warning("HoldingJudge failed for '%s': %s", citation[:50], exc)
+        return None
+
+
 def _deterministic_fallback(
     raw_text: str,
+    doc_text: str,
     corpus: "ICorpusRepository",
     treatment: "ITreatmentRepository",
     misapplied_table: dict,
 ) -> "tuple[CitationResult, str]":
-    """Corpus-only verdict — used when agent is unavailable or failed."""
+    """Corpus-only verdict — used when all agent providers are unavailable."""
     corpus_node = corpus.lookup(raw_text)
     layer1 = compute_layer1(raw_text, corpus_node, misapplied_table)
-
-    if layer1.verdict != Layer1Verdict.VERIFIED:
-        llm_text = generate_explanation(
-            verdict=layer1.verdict.value,
-            citation=raw_text,
-            proposition_cited=layer1.proposition_cited,
-            proposition_actual=layer1.proposition_actual,
-        )
-        if llm_text:
-            layer1.llm_explanation = llm_text
 
     if corpus_node and layer1.verdict != Layer1Verdict.FABRICATED:
         hist = treatment.get_history(corpus_node.node_id)
@@ -303,17 +405,54 @@ def _deterministic_fallback(
     else:
         layer2 = Layer2Result(verdict=Layer2Verdict.NOT_CHECKED, source="not_checked")
 
-    corpus_source = None
-    if layer1.verdict != Layer1Verdict.FABRICATED:
-        corpus_source = _node_to_source(corpus_node)
+    # Degraded HoldingJudge (no passages, no agent) — uses corpus proposition only
+    holding_analysis = None
+    if layer1.verdict != Layer1Verdict.FABRICATED and corpus_node:
+        pos = doc_text.find(raw_text)
+        if pos != -1:
+            start = max(0, pos - _BRIEF_CONTEXT_WINDOW)
+            end   = min(len(doc_text), pos + len(raw_text) + _BRIEF_CONTEXT_WINDOW)
+            brief_context = doc_text[start:end]
+        else:
+            brief_context = doc_text[:1400]
+
+        # Suggestions for MISAPPLIED and OVERRULED in the deterministic path too
+        suggestions = None
+        is_overruled = (
+            layer2.verdict == Layer2Verdict.OVERRULED
+        )
+        if layer1.verdict == Layer1Verdict.MISAPPLIED or is_overruled:
+            try:
+                corpus_proposition = corpus_node.propositions[0] if corpus_node.propositions else ""
+                suggestions = corpus.find_suggestions(
+                    proposition=layer1.proposition_cited or corpus_proposition,
+                    brief_context=brief_context,
+                    domain=corpus_node.domain,
+                    limit=6,
+                    exclude_node_id=corpus_node.node_id,
+                )
+            except Exception as exc:
+                logger.warning("find_suggestions (deterministic path) failed: %s", exc)
+
+        try:
+            holding_analysis = analyse_holding(
+                citation=raw_text,
+                brief_context=brief_context,
+                passages=[],
+                corpus_proposition=corpus_node.propositions[0] if corpus_node.propositions else "",
+                suggestions=suggestions,
+                domain=corpus_node.domain,
+            )
+        except Exception as exc:
+            logger.warning("HoldingJudge (deterministic path) failed: %s", exc)
 
     result = CitationResult(
         raw_text=raw_text,
-        corpus_source=corpus_source,
+        corpus_source=_node_to_source(corpus_node) if layer1.verdict != Layer1Verdict.FABRICATED else None,
         layer1=layer1,
         layer2=layer2,
         statutory=None,
-        context_analysis=None,
+        holding_analysis=holding_analysis,
     )
     return result, f"{raw_text}:{layer1.verdict}"
 
@@ -321,9 +460,14 @@ def _deterministic_fallback(
 def _agent_verdict_to_layers(
     av: "AgentVerdict",
     raw_citation: str,
-) -> "tuple[Layer1Result, Layer2Result, ContextAnalysis]":
+) -> "tuple[Layer1Result, Layer2Result]":
+    try:
+        l1v = Layer1Verdict(av.verdict)
+    except ValueError:
+        l1v = Layer1Verdict.UNVERIFIABLE
+
     layer1 = Layer1Result(
-        verdict=Layer1Verdict(av.verdict),
+        verdict=l1v,
         confidence=1.0 if av.verdict == "FABRICATED" else 0.9,
         proposition_cited=av.proposition_cited,
         proposition_actual=av.proposition_actual,
@@ -336,23 +480,10 @@ def _agent_verdict_to_layers(
         l2v = Layer2Verdict.NOT_CHECKED
 
     layer2 = Layer2Result(verdict=l2v, source="agent")
-
-    context_analysis = ContextAnalysis(
-        document_claim=av.proposition_cited,
-        claim_matches=(av.verdict == "VERIFIED"),
-        mismatch_reason=av.reason if av.verdict == "MISAPPLIED" else None,
-        alternatives=(
-            [AlternativeSuggestion(suggestion=av.alternative_citation)]
-            if av.alternative_citation else []
-        ),
-        agent_model=f"{av.provider_used} (tools:{','.join(av.tool_calls_log)})",
-    )
-
-    return layer1, layer2, context_analysis
+    return layer1, layer2
 
 
 def _node_to_source(node) -> "CorpusSource | None":
-    """Convert a CaseNode to the CorpusSource provenance block for the API response."""
     if node is None:
         return None
     return CorpusSource(

@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from app.adapters.neo4j.driver import close_driver
 from app.adapters.legislation.uk_adapter import LegislationGovUkAdapter
-from app.api.routers import health, verify, suggest, graph
+from app.api.routers import health, verify, suggest, graph, proof, preview
 from app.config import get_settings
 
 logger = logging.getLogger("traceit")
@@ -81,6 +81,8 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(suggest.router)
     app.include_router(graph.router)
+    app.include_router(proof.router)
+    app.include_router(preview.router)
 
     return app
 

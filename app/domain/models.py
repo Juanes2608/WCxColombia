@@ -5,9 +5,10 @@ from pydantic import BaseModel, Field
 
 
 class Layer1Verdict(str, Enum):
-    FABRICATED = "FABRICATED"
-    MISAPPLIED = "MISAPPLIED"
-    VERIFIED   = "VERIFIED"
+    FABRICATED    = "FABRICATED"
+    MISAPPLIED    = "MISAPPLIED"
+    VERIFIED      = "VERIFIED"
+    UNVERIFIABLE  = "UNVERIFIABLE"   # case exists but holding could not be determined
 
 
 class Layer2Verdict(str, Enum):
@@ -29,10 +30,9 @@ class Layer1Result(BaseModel):
     verdict: Layer1Verdict
     confidence: float = Field(ge=0.0, le=1.0)
     node_id: str | None = None
-    proposition_cited: str | None = None
-    proposition_actual: str | None = None
-    explanation: str
-    llm_explanation: str | None = None
+    proposition_cited: str | None = None   # what the skeleton claims (from misapplied table)
+    proposition_actual: str | None = None  # what the case actually establishes (from corpus)
+    explanation: str                        # deterministic one-line source explanation
 
 
 class Layer2Result(BaseModel):
@@ -52,60 +52,121 @@ class StatutoryResult(BaseModel):
     source_url: str
 
 
-class AlternativeSuggestion(BaseModel):
-    suggestion: str  # "Case Name — rationale from Nemotron"
+# ── Holding analysis (Agent 2 output) ────────────────────────────────────────
+
+class BriefPointer(BaseModel):
+    """Locates the claim inside the uploaded skeleton argument."""
+    sentence: str                  # exact sentence in the brief making the legal claim
+    paragraph_hint: str | None     # estimated section / paragraph label e.g. "§3.2"
+    char_position: int | None      # character offset in the uploaded document
 
 
-class ContextAnalysis(BaseModel):
+class JudgmentPointer(BaseModel):
     """
-    Nemotron multi-agent pipeline output (Steps 3-5).
+    Points to a specific chunk in the judgment — traceable by the lawyer.
 
-    Step 3 (Nano):  document_claim — what the author claims the citation establishes
-    Step 4 (Super): claim_matches  — whether that claim matches the actual proposition
-    Step 5 (Super): alternatives   — better citations when claim_matches is False
+    Note: para_no is a 0-based chunk index from the PDF-ingest ETL, not an
+    official judgment paragraph number. There is no pre-labelled holding flag;
+    is_holding is inferred by the HoldingJudge from the content of the chunk.
     """
-    document_claim: str | None = None
-    claim_matches: bool | None = None   # None = not analyzed (Nemotron not configured)
-    mismatch_reason: str | None = None
-    alternatives: list[AlternativeSuggestion] = []
-    agent_model: str = "nemotron-super-120b"
+    para_no: int                   # 0-based chunk index (e.g. 3 = chunk 3 of this case)
+    excerpt: str                   # first ~100 characters of the chunk
+    is_holding: bool               # True if HoldingJudge identified this as the ratio
 
+
+class AmendmentSuggestion(BaseModel):
+    """A case from the corpus that genuinely supports the proposition the lawyer needs."""
+    citation: str                  # full citation from corpus
+    short_name: str                # display name
+    proposition: str               # what this case actually establishes
+    rationale: str                 # one sentence on why it fits better
+
+
+class HoldingAnalysis(BaseModel):
+    """
+    Rich output of Agent 2's holding-based verification.
+
+    Produced by the HoldingJudge after the CitationAgent retrieves judgment
+    passages from Neo4j.  All pointer fields reference text that genuinely
+    exists in the document or judgment — nothing is invented.
+
+    Modes:
+      holding_found=True  + judgment_pointers non-empty  → full analysis
+      holding_found=True  + judgment_pointers empty       → degraded (corpus proposition used)
+      holding_found=False                                 → unverifiable, no inference made
+    """
+    case_summary: str | None = None        # 2-4 sentences: what the judge actually decided
+    verdict_reasoning: str | None = None   # plain English: why usage matches / does not
+    brief_pointer: BriefPointer | None = None
+    judgment_pointers: list[JudgmentPointer] = []
+    amendments: list[AmendmentSuggestion] = []
+    confidence: float = 0.0
+    holding_found: bool = False
+    analysis_mode: str = "none"            # "full" | "degraded" | "none"
+    agent_model: str = ""
+
+
+# ── Corpus provenance ─────────────────────────────────────────────────────────
 
 class CorpusSource(BaseModel):
     """The verified corpus record matched to this citation — shown as provenance in the UI."""
     node_id: str
     citation: str           # canonical full citation from corpus
-    short_name: str         # display name (e.g. "Anglia Television v Reed")
+    short_name: str         # display name
     court: str | None = None
     domain: str | None = None
-    bailii_url: str | None = None   # direct link to the judgment on BAILII
+    bailii_url: str | None = None
     status: str             # GOOD_LAW | OVERRULED | PARTIALLY_OVERRULED
 
 
+# ── Per-citation result ───────────────────────────────────────────────────────
+
 class CitationResult(BaseModel):
     raw_text: str
-    corpus_source: CorpusSource | None = None   # None only for FABRICATED citations
+    corpus_source: CorpusSource | None = None
     layer1: Layer1Result
     layer2: Layer2Result
     statutory: StatutoryResult | None = None
-    context_analysis: ContextAnalysis | None = None
+    holding_analysis: HoldingAnalysis | None = None
+    document_context: str | None = None      # ±400 chars around citation in uploaded doc
+    document_char_pos: int | None = None     # character offset in the original document
 
 
-class FinancialSummary(BaseModel):
-    n_fabricated: int
-    n_misapplied: int
-    n_overruled: int
-    n_verified: int
-    flag_rate: float
-    savings_gbp: float
-    risk_ev_gbp: float
-    baseline_hallucination_rate: float = 0.43  # Stanford GPT-4 on legal queries
-
+# ── Verification report ───────────────────────────────────────────────────────
 
 class VerifyResult(BaseModel):
     matter_id: str
     total_citations: int
     results: list[CitationResult]
-    financial: FinancialSummary
     processing_ms: int
     audit_trail_hash: str
+
+
+# ── Proof panel (single-citation deep-dive) ───────────────────────────────────
+
+class TransparencyCard(BaseModel):
+    method: str
+    verdict_source: str
+    corpus_size: int
+    limitations: list[str]
+
+
+class ProofPanel(BaseModel):
+    """Full evidence pack for a single citation — split-screen UI."""
+    matter_id: str
+    citation_index: int
+    raw_citation: str
+    verdict: str
+    confidence: float
+    document_context: str | None = None
+    brief_pointer: BriefPointer | None = None
+    case_summary: str | None = None
+    verdict_reasoning: str | None = None
+    judgment_pointers: list[JudgmentPointer] = []
+    amendments: list[AmendmentSuggestion] = []
+    good_law_status: str
+    overruled_by: list[TreatmentEdge] = []
+    distinguished_by: list[TreatmentEdge] = []
+    bailii_url: str | None = None
+    static_explanation: str = ""
+    transparency: TransparencyCard

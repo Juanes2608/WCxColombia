@@ -10,12 +10,15 @@ from fastapi.testclient import TestClient
 
 # ── Blank external dependencies BEFORE importing the app ─────────────────────
 os.environ.update({
-    "NEO4J_URI":         "",
-    "NEO4J_USER":        "neo4j",
-    "NEO4J_PASSWORD":    "",
-    "ANTHROPIC_API_KEY": "",
-    "JUS_MUNDI_API_KEY": "",
-    "CORS_ORIGINS":      "http://localhost:3000",
+    "NEO4J_URI":          "",    # blank → CSV corpus (offline test mode)
+    "NEO4J_USER":         "neo4j",
+    "NEO4J_PASSWORD":     "",
+    "ANTHROPIC_API_KEY":  "",   # disable all agents — deterministic path only
+    "GROQ_API_KEY":       "",
+    "NVIDIA_API_KEY":     "",
+    "OPENROUTER_API_KEY": "",
+    "JUS_MUNDI_API_KEY":  "",
+    "CORS_ORIGINS":       "http://localhost:3000",
 })
 
 from app.main import app  # noqa: E402 — must be AFTER env setup

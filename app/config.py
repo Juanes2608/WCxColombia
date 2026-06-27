@@ -13,39 +13,35 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Neo4j Aura
+    # Neo4j Aura (primary data store — always used when configured)
     neo4j_uri: str = ""
     neo4j_user: str = "neo4j"
     neo4j_password: str = ""
 
-    # legislation.gov.uk
-    legislation_base_url: str = "https://www.legislation.gov.uk"
-
     # App
-    # Stored as a comma-separated string (or JSON list) — parsed by get_cors_origins()
     cors_origins: str = "http://localhost:3000"
     port: int = 8000
 
-    # Optional: LLM (not used by core pipeline)
+    # legislation.gov.uk (statutory verification)
+    legislation_base_url: str = "https://www.legislation.gov.uk"
+
+    # ── Agent LLM providers ───────────────────────────────────────────────────
+    # All three run full agentic tool-calling loops (multi-turn).
+    # Provider chain: Claude → Groq → NVIDIA (first available wins per citation).
+
+    # Provider 1: Anthropic Claude Haiku (native tool calling, ~$0.004/citation)
     anthropic_api_key: str = ""
-    jus_mundi_api_key: str = ""
+    anthropic_model: str = "claude-haiku-4-5"
 
-    # Infermatic AI (OpenAI-compatible, priority over Anthropic)
-    infermatic_api_key: str = ""
-    infermatic_base_url: str = "https://api.totalgpt.ai"
-    infermatic_model: str = "Qwen-Qwen3.6-35B-A3B"
+    # Provider 2: Groq LLaMA (OpenAI-compatible, fast, free tier)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
 
-    # OpenRouter — Nemotron multi-agent pipeline (Steps 3-5: context extraction, comparison, alternatives)
-    openrouter_api_key: str = ""
-    # Nano Omni 30B — multimodal (text+image+audio), reasoning built-in; use for Agent 3 (extract)
-    openrouter_nano_model: str = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
-    # Super 120B MoE (12B active) — 1M context; use for Agent 4 (compare) and Agent 5 (alternatives)
-    openrouter_super_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
-    # Ultra 550B MoE (55B active) — reserve for complex cases / demo queries
-    openrouter_ultra_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    # Provider 3: NVIDIA NIM (OpenAI-compatible, LLaMA 70B)
+    nvidia_api_key: str = ""
+    nvidia_model: str = "meta/llama-3.3-70b-instruct"
 
     def get_cors_origins(self) -> list[str]:
-        """Parse cors_origins as JSON list or comma-separated string."""
         v = self.cors_origins.strip()
         if v.startswith("["):
             return json.loads(v)

@@ -63,11 +63,12 @@ def extract_citations(text: str) -> list[ExtractedCitation]:
 
     # Modern case law
     for m in _COMPILED_CASE_MODERN.finditer(text):
-        key = _normalize(m.group())
+        raw = _collapse_whitespace(m.group())
+        key = raw.lower()
         if key not in seen:
             seen.add(key)
             results.append(ExtractedCitation(
-                raw_text=m.group().strip(),
+                raw_text=raw,
                 start=m.start(),
                 end=m.end(),
                 citation_type="case_law",
@@ -75,11 +76,12 @@ def extract_citations(text: str) -> list[ExtractedCitation]:
 
     # Historical case law (bracketed year)
     for m in _COMPILED_CASE_OLD.finditer(text):
-        key = _normalize(m.group())
+        raw = _collapse_whitespace(m.group())
+        key = raw.lower()
         if key not in seen:
             seen.add(key)
             results.append(ExtractedCitation(
-                raw_text=m.group().strip(),
+                raw_text=raw,
                 start=m.start(),
                 end=m.end(),
                 citation_type="case_law",
@@ -87,11 +89,12 @@ def extract_citations(text: str) -> list[ExtractedCitation]:
 
     # Statute citations
     for m in _COMPILED_STATUTE.finditer(text):
-        key = _normalize(m.group())
+        raw = _collapse_whitespace(m.group())
+        key = raw.lower()
         if key not in seen:
             seen.add(key)
             results.append(ExtractedCitation(
-                raw_text=m.group().strip(),
+                raw_text=raw,
                 start=m.start(),
                 end=m.end(),
                 citation_type="statute",
@@ -100,5 +103,10 @@ def extract_citations(text: str) -> list[ExtractedCitation]:
     return sorted(results, key=lambda c: c.start)
 
 
+def _collapse_whitespace(text: str) -> str:
+    """Collapse newlines and multiple spaces into a single space (preserves case)."""
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().lower()
+    return _collapse_whitespace(text).lower()
