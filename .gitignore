@@ -20,9 +20,11 @@ dist-ssr
 .wrangler/
 .dev.vars
 
-# Package manager: npm is the source of truth for CI (package-lock.json).
-# bun.lock is ignored to avoid dual-lockfile drift on Cloudflare builds.
+# Package managers: no lockfile is committed so Cloudflare runs a tolerant
+# `npm install` on its own Linux/Node toolchain. Committing a lockfile generated
+# on a different OS/Node version produced extraneous entries that broke `npm ci`.
 bun.lock
+package-lock.json
 
 # Editor directories and files
 .vscode/*
