@@ -1,18 +1,16 @@
 // Calculator inputs — the single source of truth for the sliders AND the only
 // surface the LLM is allowed to write to. The model proposes INPUTS; the
-// deterministic engine computes every OUTPUT. Inputs are expressed in the same
-// units the sliders show (percentages as 0..100), so apply maps 1:1 to state.
+// deterministic engine computes every OUTPUT. Inputs are in slider units
+// (percentages as 0..100) plus the capacity tier the firm is deploying at.
 import { z } from "zod";
-import type {
-  BuyerInputs, CalculatorInputs, NumericBound, SellerInputs, TierId,
-} from "./types";
+import type { CalculatorInputs, CapacityTierId, NumericBound } from "./types";
 
-export const TIER_IDS: readonly TierId[] = ["junior", "chambers", "firm", "enterprise"];
+export const CAPACITY_TIER_IDS: readonly CapacityTierId[] = ["pilot", "practice", "division", "firmwide"];
 
 // Min/max/step mirror the <Field> sliders in pricing.tsx — clamping here keeps
 // any LLM-proposed value inside exactly the same envelope a human could pick.
 export const INPUT_BOUNDS = {
-  seats: { min: 1, max: 2643, step: 1, label: "Lawyers (seats)", unit: "seats" },
+  seats: { min: 1, max: 2643, step: 1, label: "Lawyers", unit: "lawyers" },
   filingsPerMonth: { min: 1, max: 120, step: 1, label: "Filings per month", unit: "filings/mo" },
   hoursPerFiling: { min: 0.5, max: 8, step: 0.5, label: "Hours checking citations per filing", unit: "h" },
   blendedRate: { min: 40, max: 600, step: 10, label: "Blended hourly rate", unit: "£/h" },
@@ -23,14 +21,13 @@ export const INPUT_BOUNDS = {
 export type NumericInputKey = keyof typeof INPUT_BOUNDS;
 
 export const DEFAULT_INPUTS: CalculatorInputs = {
-  tier: "chambers",
-  billingCycle: "annual",
+  capacityTier: "division",
   seats: 793,
-  filingsPerMonth: 12,
-  hoursPerFiling: 2.5,
-  blendedRate: 180,
-  automationPct: 65,
-  valueRealizationPct: 50,
+  filingsPerMonth: 2,
+  hoursPerFiling: 1.5,
+  blendedRate: 600,
+  automationPct: 50,
+  valueRealizationPct: 30,
 };
 
 // Snap to the slider step, then clamp to [min, max]. Rounds away float dust.
@@ -41,11 +38,10 @@ function snapClamp(value: number, b: NumericBound): number {
   return Math.round(clamped * 100) / 100;
 }
 
-/** Force every numeric field into the slider envelope; tier/billing pass through. */
+/** Force every numeric field into the slider envelope; capacity tier passes through. */
 export function clampInputs(i: CalculatorInputs): CalculatorInputs {
   return {
-    tier: i.tier,
-    billingCycle: i.billingCycle,
+    capacityTier: i.capacityTier,
     seats: snapClamp(i.seats, INPUT_BOUNDS.seats),
     filingsPerMonth: snapClamp(i.filingsPerMonth, INPUT_BOUNDS.filingsPerMonth),
     hoursPerFiling: snapClamp(i.hoursPerFiling, INPUT_BOUNDS.hoursPerFiling),
@@ -59,8 +55,7 @@ export function clampInputs(i: CalculatorInputs): CalculatorInputs {
 // numbers are coerced so "200" works. Bad values fail validation → no apply.
 export const CalculatorActionSchema = z
   .object({
-    tier: z.enum(["junior", "chambers", "firm", "enterprise"]).optional(),
-    billingCycle: z.enum(["monthly", "annual"]).optional(),
+    capacityTier: z.enum(["pilot", "practice", "division", "firmwide"]).optional(),
     seats: z.coerce.number().optional(),
     filingsPerMonth: z.coerce.number().optional(),
     hoursPerFiling: z.coerce.number().optional(),
@@ -115,36 +110,10 @@ export function parseInputsAction(reply: string): ParsedReply {
   return { text, action: parsed.data };
 }
 
-/** CalculatorInputs → engine BuyerInputs (seats only count for enterprise). */
-export function toBuyerInputs(i: CalculatorInputs): BuyerInputs {
-  return {
-    tierId: i.tier,
-    seats: i.tier === "enterprise" ? i.seats : 1,
-    filingsPerSeatMonth: i.filingsPerMonth,
-    hoursPerFiling: i.hoursPerFiling,
-    blendedRate: i.blendedRate,
-    automationPct: i.automationPct / 100,
-    valueRealizationPct: i.valueRealizationPct / 100,
-    includeRiskEV: false,
-    billingCycle: i.billingCycle,
-  };
-}
-
-/** CalculatorInputs → engine SellerInputs (filings double as scans/seat/mo). */
-export function toSellerInputs(i: CalculatorInputs): SellerInputs {
-  return {
-    tierId: i.tier,
-    seats: i.tier === "enterprise" ? i.seats : 1,
-    scansPerSeatMonth: i.filingsPerMonth,
-    billingCycle: i.billingCycle,
-  };
-}
-
-/** Human-readable diff for the "applied" chip, e.g. "Lawyers (seats) 793 → 200". */
+/** Human-readable diff for the "applied" chip, e.g. "Lawyers 793 → 200". */
 export function describeChanges(prev: CalculatorInputs, next: CalculatorInputs): string[] {
   const out: string[] = [];
-  if (prev.tier !== next.tier) out.push(`Plan ${prev.tier} → ${next.tier}`);
-  if (prev.billingCycle !== next.billingCycle) out.push(`Billing ${prev.billingCycle} → ${next.billingCycle}`);
+  if (prev.capacityTier !== next.capacityTier) out.push(`Tier ${prev.capacityTier} → ${next.capacityTier}`);
   for (const key of Object.keys(INPUT_BOUNDS) as NumericInputKey[]) {
     if (prev[key] !== next[key]) {
       const b = INPUT_BOUNDS[key];

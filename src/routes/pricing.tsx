@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 // Strong ease-out curve (Emil): built-in easings are too weak for entrances.
@@ -13,25 +13,20 @@ import {
 } from "lucide-react";
 import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
 import {
-  TIERS_LIST,
-  TIERS,
-  computeBuyerEconomics,
-  computeSellerEconomics,
-  buyerScenarios,
-  sellerScenarios,
   formatGBP,
   formatMonths,
   formatPct,
   CONSTANTS,
-  toBuyerInputs,
-  toSellerInputs,
   changedKeys,
   computeBusinessCase,
+  CAPACITY_TIERS,
+  computeCapacityCost,
+  platformBuildTotal,
   CAPTURE_STANCES,
   matchStance,
   effectiveCapturePct,
   type CalculatorInputs,
-  type TierId,
+  type CapacityTierId,
 } from "@/lib/pricing";
 import { ChatPanel } from "@/components/citationguard/ChatPanel";
 
@@ -55,99 +50,89 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
 });
 
-function PlanCards({
-  annual,
-  onChoose,
-}: {
-  annual: boolean;
-  onChoose: (id: TierId) => void;
-}) {
+function PlanCards() {
+  const platform = platformBuildTotal();
   return (
-    <div className="grid gap-6 lg:grid-cols-4">
-      {TIERS_LIST.map((p) => {
-        const price = p.pricePerSeatMonthly
-          ? p.pricePerSeatMonthly.value
-          : annual
-            ? p.priceMonthly!.value * p.annualFactor.value
-            : p.priceMonthly!.value;
-        const priceSuffix = p.pricePerSeatMonthly
-          ? "/seat/mo"
-          : annual
-            ? "/mo · annual"
-            : "/mo";
+    <div>
+      {/* Platform build — one-time, serves any capacity below */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-n300 bg-surface px-6 py-5">
+        <div className="max-w-xl">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-action">
+            Platform build · one-time
+          </p>
+          <p className="mt-1 text-sm text-n500">
+            The engine — citation graph, legislation.gov.uk ingestion, deterministic verdict logic
+            — built <span className="text-ink">once</span> and shared by every capacity below.
+          </p>
+        </div>
+        <span className="font-display text-3xl font-semibold text-ink">{formatGBP(platform)}</span>
+      </div>
 
-        const capacityLine = p.scanCapacity
-          ? `Up to ${p.scanCapacity.value} scans/mo`
-          : `Fair-use ${p.scanCapacityPerSeat!.value} scans/seat/mo`;
-
-        const facts = [
-          capacityLine,
-          "Existence + application + good-law checks",
-          "Audit trail hash on every report",
-        ];
-
-        return (
-          <div
-            key={p.id}
-            className={`relative flex flex-col rounded-2xl p-7 transition-[transform,border-color] duration-200 hover:-translate-y-1 ${
-              p.featured
-                ? "border-2 border-ink bg-ink text-paper shadow-2xl shadow-ink/20 lg:-mt-4 lg:mb-4"
-                : "border border-n300 bg-surface hover:border-ink-300"
-            }`}
-          >
-            {p.featured && (
-              <span className="absolute -top-3 left-7 rounded-full bg-accent-lime px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-ink">
-                Recommended
-              </span>
-            )}
-            <h3
-              className={`font-display text-xl font-semibold ${
-                p.featured ? "text-paper" : "text-ink"
+      <div className="grid gap-6 lg:grid-cols-4">
+        {CAPACITY_TIERS.map((t) => {
+          const cost = computeCapacityCost(t);
+          const facts = [
+            `Up to ${t.maxUsers.toLocaleString()} lawyers`,
+            `Up to ${t.maxRequestsMonth.toLocaleString()} scans/mo`,
+            "Existence + application + good-law checks",
+            "Audit trail hash on every report",
+          ];
+          return (
+            <div
+              key={t.id}
+              className={`relative flex flex-col rounded-2xl p-7 transition-[transform,border-color] duration-200 hover:-translate-y-1 ${
+                t.featured
+                  ? "border-2 border-ink bg-ink text-paper shadow-2xl shadow-ink/20 lg:-mt-4 lg:mb-4"
+                  : "border border-n300 bg-surface hover:border-ink-300"
               }`}
             >
-              {p.name}
-            </h3>
-            <p className={`mt-2 text-sm ${p.featured ? "text-paper/70" : "text-n500"}`}>
-              {p.forWho}
-            </p>
-            <div className="mt-5 flex items-baseline gap-1">
-              <span
-                className={`font-display text-4xl font-semibold ${
-                  p.featured ? "text-accent-lime" : "text-ink"
-                }`}
+              {t.featured && (
+                <span className="absolute -top-3 left-7 rounded-full bg-accent-lime px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-ink">
+                  White &amp; Case
+                </span>
+              )}
+              <h3
+                className={`font-display text-xl font-semibold ${t.featured ? "text-paper" : "text-ink"}`}
               >
-                {formatGBP(price)}
-              </span>
-              <span className={`text-sm ${p.featured ? "text-paper/60" : "text-n500"}`}>
-                {priceSuffix}
-              </span>
+                {t.name}
+              </h3>
+              <p className={`mt-2 text-sm ${t.featured ? "text-paper/70" : "text-n500"}`}>
+                {t.forWho}
+              </p>
+              <div className="mt-5">
+                <div className="flex items-baseline gap-1">
+                  <span
+                    className={`font-display text-3xl font-semibold ${t.featured ? "text-accent-lime" : "text-ink"}`}
+                  >
+                    {formatGBP(cost.deployment)}
+                  </span>
+                  <span className={`text-sm ${t.featured ? "text-paper/60" : "text-n500"}`}>
+                    deploy
+                  </span>
+                </div>
+                <p className={`mt-1 text-sm ${t.featured ? "text-paper/70" : "text-n500"}`}>
+                  + {formatGBP(cost.maintenanceAnnual)}/yr to run
+                </p>
+              </div>
+              <ul className="mt-6 flex-1 space-y-3 text-sm">
+                {facts.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <Check
+                      className={`mt-0.5 h-4 w-4 shrink-0 ${t.featured ? "text-accent-lime" : "text-action"}`}
+                    />
+                    <span className={t.featured ? "text-paper/90" : "text-ink"}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <p
+                className={`mt-6 font-mono text-[10px] uppercase tracking-wide ${t.featured ? "text-paper/40" : "text-n500"}`}
+              >
+                At cost · no licence, no margin
+              </p>
             </div>
-            <ul className="mt-6 flex-1 space-y-3 text-sm">
-              {facts.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <Check
-                    className={`mt-0.5 h-4 w-4 shrink-0 ${
-                      p.featured ? "text-accent-lime" : "text-action"
-                    }`}
-                  />
-                  <span className={p.featured ? "text-paper/90" : "text-ink"}>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => onChoose(p.id)}
-              className={`mt-7 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-ink ${
-                p.featured
-                  ? "bg-accent-lime text-ink hover:opacity-90"
-                  : "bg-ink text-paper hover:bg-ink-700"
-              }`}
-            >
-              <Calculator className="h-4 w-4" /> Calculate my return
-            </button>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -208,32 +193,27 @@ function Field({
 }
 
 function ReturnCalculator({
-  planId,
-  setPlanId,
-  annual,
-  setAnnual,
+  capacityTier,
+  setCapacityTier,
 }: {
-  planId: TierId;
-  setPlanId: (id: TierId) => void;
-  annual: boolean;
-  setAnnual: (v: boolean) => void;
+  capacityTier: CapacityTierId;
+  setCapacityTier: (id: CapacityTierId) => void;
 }) {
-  const [filings, setFilings] = useState(12);
-  const [hoursPerFiling, setHoursPerFiling] = useState(2.5);
-  const [rate, setRate] = useState(180);
-  const [automation, setAutomation] = useState(65);
+  const [filings, setFilings] = useState(2);
+  const [hoursPerFiling, setHoursPerFiling] = useState(1.5);
+  const [rate, setRate] = useState(600);
+  const [automation, setAutomation] = useState(50);
   const [seats, setSeats] = useState(793);
-  const [realization, setRealization] = useState(50);
+  const [realization, setRealization] = useState(30);
   const [highlight, setHighlight] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const tier = TIERS[planId];
+  const selectedTier = CAPACITY_TIERS.find((t) => t.id === capacityTier) ?? CAPACITY_TIERS[0];
 
   const calcInputs: CalculatorInputs = {
-    tier: planId,
-    billingCycle: annual ? "annual" : "monthly",
+    capacityTier,
     seats,
     filingsPerMonth: filings,
     hoursPerFiling,
@@ -241,7 +221,6 @@ function ReturnCalculator({
     automationPct: automation,
     valueRealizationPct: realization,
   };
-  const inputs = toBuyerInputs(calcInputs);
   const bc = computeBusinessCase(calcInputs);
 
   // "Time captured" readout: the two honesty knobs collapsed into one figure.
@@ -256,8 +235,7 @@ function ReturnCalculator({
   // The engine recomputes every output reactively — the model never sets a result.
   const onApplyInputs = (nextInputs: CalculatorInputs) => {
     const moved = changedKeys(calcInputs, nextInputs);
-    setPlanId(nextInputs.tier);
-    setAnnual(nextInputs.billingCycle === "annual");
+    setCapacityTier(nextInputs.capacityTier);
     setSeats(nextInputs.seats);
     setFilings(nextInputs.filingsPerMonth);
     setHoursPerFiling(nextInputs.hoursPerFiling);
@@ -269,37 +247,6 @@ function ReturnCalculator({
     hlTimer.current = setTimeout(() => setHighlight([]), 1600);
   };
 
-  const eco = useMemo(
-    () => computeBuyerEconomics(inputs, tier),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
-  );
-
-  const scen = useMemo(
-    () => buyerScenarios(inputs, tier),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
-  );
-
-  const sellerInputs = toSellerInputs(calcInputs);
-
-  const sellerEco = useMemo(
-    () => computeSellerEconomics(sellerInputs, tier),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [planId, seats, filings, annual],
-  );
-
-  const sellerScen = useMemo(
-    () => sellerScenarios(sellerInputs, tier),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [planId, seats, filings, annual],
-  );
-
-  const displayedRoi =
-    eco.buyerRoiPct !== null && eco.buyerRoiPct >= 0
-      ? `${Math.round(eco.buyerRoiPct * 100)}%`
-      : "—";
-
   return (
     <div>
     <div className="grid gap-8 lg:grid-cols-2">
@@ -309,37 +256,27 @@ function ReturnCalculator({
           <Calculator className="h-4 w-4" /> Your numbers
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
-          {TIERS_LIST.map((p) => {
-            const tierPrice = p.pricePerSeatMonthly
-              ? p.pricePerSeatMonthly.value
-              : annual
-                ? p.priceMonthly!.value * p.annualFactor.value
-                : p.priceMonthly!.value;
-            const priceSuffix = p.pricePerSeatMonthly ? "/seat" : "/mo";
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPlanId(p.id)}
-                className={`relative rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  p.id === planId
-                    ? "border-transparent text-paper"
-                    : "border-n300 text-n500 hover:border-ink"
-                }`}
-              >
-                {p.id === planId && (
-                  <motion.span
-                    layoutId="pricing-plan-pill"
-                    className="absolute inset-0 rounded-lg bg-ink"
-                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10">
-                  {p.name} · {formatGBP(tierPrice)}{priceSuffix}
-                </span>
-              </button>
-            );
-          })}
+          {CAPACITY_TIERS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setCapacityTier(t.id)}
+              className={`relative rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                t.id === capacityTier
+                  ? "border-transparent text-paper"
+                  : "border-n300 text-n500 hover:border-ink"
+              }`}
+            >
+              {t.id === capacityTier && (
+                <motion.span
+                  layoutId="pricing-plan-pill"
+                  className="absolute inset-0 rounded-lg bg-ink"
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">{t.name}</span>
+            </button>
+          ))}
         </div>
 
         {/* White & Case preset */}
@@ -347,7 +284,7 @@ function ReturnCalculator({
           <button
             type="button"
             onClick={() => {
-              setPlanId("enterprise");
+              setCapacityTier("division");
               setSeats(793);
               setRate(600);
               setFilings(2);
@@ -362,18 +299,16 @@ function ReturnCalculator({
         </div>
 
         <div className="mt-7 space-y-7">
-          {planId === "enterprise" && (
-            <Field
-              label="Lawyers (seats)"
-              hint="Number of firm seats on TraceIt."
-              value={seats}
-              onChange={setSeats}
-              min={1}
-              max={2643}
-              step={1}
-              highlight={highlight.includes("seats")}
-            />
-          )}
+          <Field
+            label="Lawyers"
+            hint={`How many lawyers use it. ${selectedTier.name} covers up to ${selectedTier.maxUsers.toLocaleString()}.`}
+            value={seats}
+            onChange={setSeats}
+            min={1}
+            max={selectedTier.maxUsers}
+            step={1}
+            highlight={highlight.includes("seats")}
+          />
           <Field
             label="Filings per month"
             hint="Skeleton arguments / pleadings you run through review."
@@ -480,121 +415,70 @@ function ReturnCalculator({
         </div>
       </div>
 
-      {/* Live result */}
+      {/* Live result — cost to solve (TCO) vs time saved */}
       <div className="flex flex-col rounded-2xl border-2 border-ink bg-ink p-7 text-paper">
-        {/* Firm business case — time-first (enterprise / White & Case) */}
-        {planId === "enterprise" && (
-          <div className="mb-6 border-b border-paper/15 pb-6">
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
-              <Info className="h-4 w-4" /> The White &amp; Case business case
-            </div>
-            <p className="mt-1 text-xs text-paper/50">
-              {bc.seats.toLocaleString()} lawyers · ~{Math.round(bc.requestsPerYear).toLocaleString()}{" "}
-              scans/yr · ≈{formatPct(bc.year1CostPctOfFirmRevenue, 2)} of firm revenue
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
+          <TrendingUp className="h-4 w-4" /> {selectedTier.name} · your numbers
+        </div>
+        <p className="mt-1 text-xs text-paper/50">
+          {bc.seats.toLocaleString()} lawyers · ~{Math.round(bc.requestsPerYear).toLocaleString()}{" "}
+          scans/yr · ≈{formatPct(bc.year1CostPctOfFirmRevenue, 2)} of firm revenue
+        </p>
+
+        {/* Review time saved — the only thing we measure */}
+        <div className="mt-4 rounded-xl bg-ink-700 p-5">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-paper/40">
+            Review time saved / yr
+          </p>
+          <p className="mt-1 font-display text-4xl font-semibold text-accent-lime">
+            {formatGBP(bc.timeSavedAnnual)}
+          </p>
+          <p className="mt-1 text-xs text-paper/60">
+            The only value we put a number on — measured from your own hours.
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <Metric label="Cost · year 1" value={formatGBP(bc.year1Cost)} />
+          <Metric label="Net · year 1" value={formatGBP(bc.year1Net)} highlight={bc.year1Net >= 0} />
+          <Metric
+            label="Payback"
+            value={bc.paybackMonths !== null ? formatMonths(bc.paybackMonths) : "—"}
+          />
+          <Metric label="3-year net" value={formatGBP(bc.threeYearNet)} />
+        </div>
+
+        {/* Cost build-up — at cost, no margin: build it + run it */}
+        <button
+          type="button"
+          onClick={() => setShowCostBreakdown((v) => !v)}
+          className="mt-4 text-xs font-semibold text-accent-lime hover:underline"
+        >
+          {showCostBreakdown ? "Hide cost build-up" : "Cost build-up — at cost, what it takes to build + run it"}
+        </button>
+        {showCostBreakdown && (
+          <div className="mt-3 space-y-1 rounded-xl bg-ink-700/50 p-4 text-xs text-paper/70">
+            <p className="font-semibold text-paper/90">
+              Build the solution (one-time) — {formatGBP(bc.implementation.total)}
             </p>
-
-            {/* Review time saved — the only thing we measure */}
-            <div className="mt-4 rounded-xl bg-ink-700 p-5">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-paper/40">
-                Review time saved / yr
-              </p>
-              <p className="mt-1 font-display text-4xl font-semibold text-accent-lime">
-                {formatGBP(bc.timeSavedAnnual)}
-              </p>
-              <p className="mt-1 text-xs text-paper/60">
-                The only value we put a number on — measured from your own hours.
-              </p>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <Metric label="Cost · year 1" value={formatGBP(bc.year1Cost)} />
-              <Metric label="Net · year 1" value={formatGBP(bc.year1Net)} highlight={bc.year1Net >= 0} />
-              <Metric
-                label="Payback"
-                value={bc.paybackMonths !== null ? formatMonths(bc.paybackMonths) : "—"}
-              />
-              <Metric label="3-year net" value={formatGBP(bc.threeYearNet)} />
-            </div>
-
-            {/* Cost build-up — at cost, no margin: build it + run it */}
-            <button
-              type="button"
-              onClick={() => setShowCostBreakdown((v) => !v)}
-              className="mt-3 text-xs font-semibold text-accent-lime hover:underline"
-            >
-              {showCostBreakdown ? "Hide cost build-up" : "Cost build-up — at cost, what it takes to build + run it"}
-            </button>
-            {showCostBreakdown && (
-              <div className="mt-3 space-y-1 rounded-xl bg-ink-700/50 p-4 text-xs text-paper/70">
-                <p className="font-semibold text-paper/90">
-                  Build the solution (one-time) — {formatGBP(bc.implementation.total)}
-                </p>
-                <div className="flex justify-between"><span>· Graph + legislation.gov.uk ingestion</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.graphIngestion)}</span></div>
-                <div className="flex justify-between"><span>· Deterministic verdict engine</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.verdictEngine)}</span></div>
-                <div className="flex justify-between"><span>· Backend + frontend + audit trail</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.app)}</span></div>
-                <div className="flex justify-between"><span>· Testing + security hardening</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.qaHardening)}</span></div>
-                <div className="flex justify-between pt-1"><span>· Deploy: DMS + SSO integration</span><span className="font-mono">{formatGBP(bc.implementation.deployment.integration)}</span></div>
-                <div className="flex justify-between"><span>· Deploy: InfoSec review + pen test</span><span className="font-mono">{formatGBP(bc.implementation.deployment.infosec)}</span></div>
-                <div className="flex justify-between"><span>· Deploy: training ({bc.seats.toLocaleString()} lawyers)</span><span className="font-mono">{formatGBP(bc.implementation.deployment.training)}</span></div>
-                <div className="flex justify-between"><span>· Deploy: project mgmt + pilot</span><span className="font-mono">{formatGBP(bc.implementation.deployment.projectMgmt)}</span></div>
-                <p className="pt-2 font-semibold text-paper/90">
-                  Run it (per year) — {formatGBP(bc.maintenanceAnnual)}
-                </p>
-                <div className="flex justify-between"><span>· AI API ({Math.round(bc.requestsPerYear).toLocaleString()} scans)</span><span className="font-mono">{formatGBP(bc.runCost.llmApiAnnual)}</span></div>
-                <div className="flex justify-between"><span>· Hosting/infra (Neo4j + backend + CDN)</span><span className="font-mono">{formatGBP(bc.runCost.infraAnnual)}</span></div>
-                <div className="flex justify-between"><span>· Ops &amp; maintenance</span><span className="font-mono">{formatGBP(bc.runCost.supportAnnual)}</span></div>
-              </div>
-            )}
-
-            <p className="mt-3 text-[11px] text-paper/40">
-              At cost — no licence, no margin. ⚠ Why now (not priced): the sanction wave — Ayinde [2025]{" "}
-              ({formatGBP(bc.sanctionDirectCost)} wasted costs), Mata v Avianca [2023].
+            <div className="flex justify-between"><span>· Graph + legislation.gov.uk ingestion</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.graphIngestion)}</span></div>
+            <div className="flex justify-between"><span>· Deterministic verdict engine</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.verdictEngine)}</span></div>
+            <div className="flex justify-between"><span>· Backend + frontend + audit trail</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.app)}</span></div>
+            <div className="flex justify-between"><span>· Testing + security hardening</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.qaHardening)}</span></div>
+            <div className="flex justify-between pt-1"><span>· Deploy at {selectedTier.name} (integration + InfoSec + training)</span><span className="font-mono">{formatGBP(bc.implementation.deployment)}</span></div>
+            <p className="pt-2 font-semibold text-paper/90">
+              Run it (per year) — {formatGBP(bc.maintenanceAnnual)}
             </p>
+            <div className="flex justify-between"><span>· AI API ({Math.round(bc.requestsPerYear).toLocaleString()} scans)</span><span className="font-mono">{formatGBP(bc.runCost.llmApiAnnual)}</span></div>
+            <div className="flex justify-between"><span>· Hosting/infra (Neo4j + backend + CDN)</span><span className="font-mono">{formatGBP(bc.runCost.infraAnnual)}</span></div>
+            <div className="flex justify-between"><span>· Ops &amp; maintenance</span><span className="font-mono">{formatGBP(bc.runCost.opsAnnual)}</span></div>
           </div>
         )}
 
-        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
-          <TrendingUp className="h-4 w-4" /> Your return, live
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-4">
-          <Metric label="Hours saved / mo" value={`${eco.hoursSavedMonthly.toFixed(1)} h`} />
-          <Metric label="Time value / mo" value={formatGBP(eco.realizedTimeValueMonthly)} />
-          <Metric label="Plan cost / mo" value={formatGBP(eco.effectiveLicenseMonthly)} />
-          <Metric
-            label="Net benefit / mo"
-            value={formatGBP(eco.netBenefitMonthly)}
-            highlight={eco.netBenefitMonthly >= 0}
-          />
-        </div>
-        <div className="mt-5 rounded-xl bg-ink-700 p-5">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-paper/70">Return on the plan</span>
-            <span className="font-display text-3xl font-semibold text-accent-lime">
-              {displayedRoi}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-paper/70">
-            Break-even at{" "}
-            <span className="font-mono text-paper">
-              {Number.isFinite(eco.buyerBreakEvenFilings)
-                ? eco.buyerBreakEvenFilings
-                : "—"}
-            </span>{" "}
-            filings/month. You scan {filings}.
-          </p>
-        </div>
-
-        {/* Sensitivity */}
-        <div className="mt-5">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-paper/40">
-            Sensitivity: net benefit / mo
-          </p>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <Scenario name="Conservative" value={formatGBP(scen.conservative.netBenefitMonthly)} />
-            <Scenario name="Base" value={formatGBP(scen.base.netBenefitMonthly)} featured />
-            <Scenario name="Optimistic" value={formatGBP(scen.optimistic.netBenefitMonthly)} />
-          </div>
-        </div>
+        <p className="mt-3 text-[11px] text-paper/40">
+          At cost — no licence, no margin. ⚠ Why now (not priced): the sanction wave — Ayinde [2025]{" "}
+          ({formatGBP(bc.sanctionDirectCost)} wasted costs), Mata v Avianca [2023].
+        </p>
 
         <div className="mt-7 flex flex-wrap gap-3">
           <Link
@@ -637,27 +521,6 @@ function Metric({
       >
         {value}
       </p>
-    </div>
-  );
-}
-
-function Scenario({
-  name,
-  value,
-  featured,
-}: {
-  name: string;
-  value: string;
-  featured?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-lg p-3 ${
-        featured ? "bg-accent-lime text-ink" : "bg-ink-700 text-paper"
-      }`}
-    >
-      <p className="font-mono text-[10px] uppercase tracking-wide opacity-70">{name}</p>
-      <p className="mt-1 font-display text-base font-semibold">{value}</p>
     </div>
   );
 }
@@ -794,8 +657,7 @@ function Honesty() {
 }
 
 function PricingPage() {
-  const [annual, setAnnual] = useState(true);
-  const [planId, setPlanId] = useState<TierId>("chambers");
+  const [capacityTier, setCapacityTier] = useState<CapacityTierId>("division");
   const reduce = useReducedMotion();
 
   return (
@@ -811,62 +673,23 @@ function PricingPage() {
           className="max-w-3xl"
         >
           <p className="font-mono text-xs uppercase tracking-widest text-action">
-            Investment &amp; return
+            Cost to solve
           </p>
           <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-5xl">
-            Recover the month&rsquo;s cost on the{" "}
-            <span className="mark-lime">first filing you check.</span>
+            Build it once. Run it for the{" "}
+            <span className="mark-lime">cost of the servers.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-n500">
-            Below is the honest version: real plan prices, the infra cost behind each, and a
-            calculator that uses your numbers, not ours, to show your break-even, payback and
-            margin. You compare the price against what you save, not against zero.
+            No licence, no margin: this is what it costs your firm to build the engine once, then
+            deploy and run it at the capacity you need. The calculator below uses your own numbers
+            to show what it saves against manual review.
           </p>
         </motion.div>
-
-        {/* Billing toggle — a shared layoutId pill glides between the options
-            instead of the active background hard-swapping. */}
-        <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-n300 bg-surface p-1">
-          <button
-            type="button"
-            onClick={() => setAnnual(false)}
-            className={`relative rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-              !annual ? "text-paper" : "text-n500 hover:text-ink"
-            }`}
-          >
-            {!annual && (
-              <motion.span
-                layoutId="pricing-billing-pill"
-                className="absolute inset-0 rounded-full bg-ink"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              />
-            )}
-            <span className="relative z-10">Monthly</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setAnnual(true)}
-            className={`relative rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-              annual ? "text-paper" : "text-n500 hover:text-ink"
-            }`}
-          >
-            {annual && (
-              <motion.span
-                layoutId="pricing-billing-pill"
-                className="absolute inset-0 rounded-full bg-ink"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              />
-            )}
-            <span className="relative z-10">
-              Annual <span className="text-accent-lime">−20%</span>
-            </span>
-          </button>
-        </div>
       </section>
 
-      {/* 2. Plans */}
+      {/* 2. Capacity tiers — cost to deploy + run */}
       <section className="mx-auto max-w-6xl px-6 pb-8">
-        <PlanCards annual={annual} onChoose={setPlanId} />
+        <PlanCards />
       </section>
 
       {/* 3. Return calculator */}
@@ -882,7 +705,7 @@ function PricingPage() {
           </p>
         </div>
         <div className="mt-10">
-          <ReturnCalculator planId={planId} setPlanId={setPlanId} annual={annual} setAnnual={setAnnual} />
+          <ReturnCalculator capacityTier={capacityTier} setCapacityTier={setCapacityTier} />
         </div>
       </section>
 

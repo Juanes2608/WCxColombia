@@ -3,28 +3,26 @@ import { buildSnapshot, buildSystemPrompt } from "@/lib/pricing/chat-context";
 import type { CalculatorInputs } from "@/lib/pricing/types";
 
 const inputs: CalculatorInputs = {
-  tier: "enterprise",
-  billingCycle: "annual",
+  capacityTier: "division",
   seats: 793,
-  filingsPerMonth: 3,
-  hoursPerFiling: 2.5,
+  filingsPerMonth: 2,
+  hoursPerFiling: 1.5,
   blendedRate: 600,
-  automationPct: 65,
-  valueRealizationPct: 50,
+  automationPct: 50,
+  valueRealizationPct: 30,
 };
 
 const snap = buildSnapshot(inputs);
 
 describe("chat context", () => {
-  it("snapshot carries computed numbers, current inputs, bounds and disclaimer", () => {
-    expect(snap.tier).toBe("enterprise");
-    expect(snap.seller.revenueMonthly).toBe(79300);
+  it("snapshot carries current inputs, bounds, capacity tier and disclaimer", () => {
+    expect(snap.capacityTier).toBe("division");
     expect(snap.inputs.seats).toBe(793);
     expect(snap.bounds.seats.max).toBe(2643);
     expect(snap.disclaimer.length).toBeGreaterThan(0);
     expect(snap.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
-  it("snapshot carries the firm TCO (full-dev cost + maintenance, time-only savings)", () => {
+  it("snapshot carries the firm TCO (build + maintenance, time-only savings)", () => {
     expect(snap.businessCase.implementation.coreBuild.total).toBeGreaterThan(0);
     expect(snap.businessCase.year1Cost).toBe(
       snap.businessCase.implementationOneTime + snap.businessCase.maintenanceAnnual,
@@ -40,6 +38,6 @@ describe("chat context", () => {
     expect(prompt).toMatch(/MODEL_SNAPSHOT/);
     expect(prompt.toLowerCase()).toMatch(/never invent|do not invent/);
     expect(prompt).toMatch(/set_inputs/);
-    expect(prompt).toContain("79300"); // a real computed figure is present
+    expect(prompt).toMatch(/capacityTier/);
   });
 });

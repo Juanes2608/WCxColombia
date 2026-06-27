@@ -1,12 +1,10 @@
 // The firm's total cost of ownership for solving the AI-citation problem in-house.
 // We are NOT a vendor with a margin: this shows what it costs the firm to BUILD the
 // solution (full development, one-time) and SUSTAIN it (maintenance, annual), at
-// cost, scaled to their capacity. Measured against the only quantifiable benefit —
-// review time saved. Sanction/reputational risk is narrative, never priced.
-import { CONSTANTS, TIERS, type Constants } from "./constants";
-import { computeBuyerEconomics } from "./buyer";
-import { computeSellerEconomics } from "./seller";
-import { toBuyerInputs, toSellerInputs } from "./inputs";
+// cost, scaled to the chosen capacity tier. Measured against the only quantifiable
+// benefit — review time saved. Sanction/reputational risk is narrative, never priced.
+import { CONSTANTS, type Constants } from "./constants";
+import { CAPACITY_TIERS } from "./capacity";
 import { computeImplementation, computeRunCost } from "./cost-model";
 import type { BusinessCase, CalculatorInputs } from "./types";
 
@@ -14,16 +12,25 @@ export function computeBusinessCase(
   inputs: CalculatorInputs,
   c: Constants = CONSTANTS,
 ): BusinessCase {
-  const tier = TIERS[inputs.tier];
-  const buyer = computeBuyerEconomics(toBuyerInputs(inputs), tier, c);
-  const seller = computeSellerEconomics(toSellerInputs(inputs), tier, c);
+  const tier = CAPACITY_TIERS.find((t) => t.id === inputs.capacityTier) ?? CAPACITY_TIERS[0];
+  const seats = Math.min(inputs.seats, tier.maxUsers);
 
-  const requestsPerYear = seller.scansMonthly * 12;
+  // Savings — review time only (tier-independent). Risk is narrative, never priced.
+  const hoursSavedMonthly =
+    seats * inputs.filingsPerMonth * inputs.hoursPerFiling * (inputs.automationPct / 100);
+  const timeSavedAnnual =
+    hoursSavedMonthly * inputs.blendedRate * (inputs.valueRealizationPct / 100) * 12;
+  const totalSavedAnnual = timeSavedAnnual;
 
-  // Cost to the firm, at cost: full development (one-time) + maintenance (annual).
-  const implementation = computeImplementation(c);
+  // Usage / scale, clamped to the tier's request capacity.
+  const requestedScansMonthly = seats * inputs.filingsPerMonth;
+  const scansMonthly = Math.min(requestedScansMonthly, tier.maxRequestsMonth);
+  const requestsPerYear = scansMonthly * 12;
+
+  // Cost to the firm, at cost: build once + deploy at this capacity + run it.
+  const implementation = computeImplementation(tier.deployment, c);
   const implementationOneTime = implementation.total;
-  const runCost = computeRunCost(requestsPerYear, tier.supportMonthly.value, c);
+  const runCost = computeRunCost(requestsPerYear, tier.infraMonthly, tier.opsMonthly, c);
   const maintenanceAnnual = runCost.total;
   const year1Cost = implementationOneTime + maintenanceAnnual;
   const ongoingAnnualCost = maintenanceAnnual;
@@ -32,10 +39,6 @@ export function computeBusinessCase(
     (c.WC_TOTAL_LAWYERS.value * c.WC_RPL_USD.value) / c.FX_USD_PER_GBP.value;
   const year1CostPctOfFirmRevenue = firmRevenueGBP > 0 ? year1Cost / firmRevenueGBP : 0;
 
-  // Savings — review time only. Risk is narrative, never a number here.
-  const timeSavedAnnual = buyer.realizedTimeValueMonthly * 12;
-  const totalSavedAnnual = timeSavedAnnual;
-
   const year1Net = totalSavedAnnual - year1Cost;
   const monthlySaved = totalSavedAnnual / 12;
   const paybackMonths = monthlySaved > 0 ? year1Cost / monthlySaved : null;
@@ -43,8 +46,8 @@ export function computeBusinessCase(
   const threeYearNet = totalSavedAnnual * 3 - (implementationOneTime + maintenanceAnnual * 3);
 
   return {
-    seats: toSellerInputs(inputs).seats,
-    scansMonthly: seller.scansMonthly,
+    seats,
+    scansMonthly,
     requestsPerYear,
     implementation,
     implementationOneTime,

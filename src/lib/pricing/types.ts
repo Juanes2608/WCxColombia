@@ -16,6 +16,7 @@ export interface Sourced<T> {
 
 export type TierId = "junior" | "chambers" | "firm" | "enterprise";
 export type BillingCycle = "monthly" | "annual";
+export type CapacityTierId = "pilot" | "practice" | "division" | "firmwide";
 
 export interface Tier {
   id: TierId;
@@ -58,10 +59,9 @@ export interface SellerInputs {
  * BuyerInputs/SellerInputs via the helpers in inputs.ts.
  */
 export interface CalculatorInputs {
-  tier: TierId;
-  billingCycle: BillingCycle;
-  seats: number; // enterprise only; SMB tiers compute as 1 seat
-  filingsPerMonth: number; // per seat; also scans/seat/mo
+  capacityTier: CapacityTierId; // deployment size (cards) — drives cost
+  seats: number; // lawyers using it (≤ tier.maxUsers)
+  filingsPerMonth: number; // per lawyer; also scans/lawyer/mo
   hoursPerFiling: number;
   blendedRate: number; // £/h
   automationPct: number; // 20..100 (honesty knob)
@@ -142,27 +142,18 @@ export interface CoreBuildBreakdown {
   total: number;
 }
 
-/** Deployment into the firm — bottom-up, scales with the rollout. */
-export interface DeploymentBreakdown {
-  integration: number; // DMS + SSO/SAML + data migration
-  infosec: number; // security review + pen test + DPA
-  training: number; // onboarding + train-the-trainer + change mgmt
-  projectMgmt: number; // PM + pilot
-  total: number;
-}
-
-/** Total one-time cost to develop AND deploy the whole solution. */
+/** Total one-time cost to develop AND deploy the solution at a given capacity. */
 export interface ImplementationCost {
-  coreBuild: CoreBuildBreakdown;
-  deployment: DeploymentBreakdown;
-  total: number; // coreBuild.total + deployment.total
+  coreBuild: CoreBuildBreakdown; // the engine — built once
+  deployment: number; // rollout into the firm — scales with capacity tier
+  total: number; // coreBuild.total + deployment
 }
 
 /** Annual cost to keep it running (servers + AI requests + ops), bottom-up. */
 export interface RunCost {
   llmApiAnnual: number; // Anthropic per-scan × volume
   infraAnnual: number; // Neo4j + hosting + CDN
-  supportAnnual: number; // ops/maintenance labor
+  opsAnnual: number; // ops/maintenance labor
   total: number;
 }
 
@@ -199,15 +190,11 @@ export interface BusinessCase {
 
 export interface ModelSnapshot {
   asOf: string;
-  tier: TierId;
+  capacityTier: CapacityTierId; // current deployment size
   inputs: CalculatorInputs; // current calculator state the LLM may adjust
   bounds: Record<string, NumericBound>; // valid min/max/step per numeric input
   captureStances: CaptureStance[]; // named postures for the two honesty knobs
-  businessCase: BusinessCase; // firm-facing cost-to-implement vs savings
-  buyer: BuyerEconomics;
-  seller: SellerEconomics;
-  buyerScenarios: ScenarioSet<BuyerEconomics>;
-  sellerScenarios: ScenarioSet<SellerEconomics>;
+  businessCase: BusinessCase; // firm TCO (build + run, at cost) vs time saved
   constants: Record<string, Sourced<number>>;
   disclaimer: string;
 }

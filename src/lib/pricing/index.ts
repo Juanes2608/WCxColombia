@@ -5,8 +5,8 @@ export { computeSellerEconomics, effectiveLicenseMonthly, tierCapacity } from ".
 export { buyerScenarios, sellerScenarios } from "./scenarios";
 export { buildSnapshot, buildSystemPrompt } from "./chat-context";
 export {
-  INPUT_BOUNDS, DEFAULT_INPUTS, TIER_IDS, CalculatorActionSchema,
-  clampInputs, applyAction, parseInputsAction, toBuyerInputs, toSellerInputs,
+  INPUT_BOUNDS, DEFAULT_INPUTS, CAPACITY_TIER_IDS, CalculatorActionSchema,
+  clampInputs, applyAction, parseInputsAction,
   describeChanges, changedKeys,
 } from "./inputs";
 export type { CalculatorAction, NumericInputKey, ParsedReply } from "./inputs";
