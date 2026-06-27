@@ -13,6 +13,7 @@ import { Route as SigninRouteImport } from './routes/signin'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LabRouteImport } from './routes/lab'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResultsMatterIdRouteImport } from './routes/results.$matterId'
 
@@ -36,6 +37,11 @@ const LabRoute = LabRouteImport.update({
   path: '/lab',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const ResultsMatterIdRoute = ResultsMatterIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
@@ -76,16 +85,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/lab'
     | '/pricing'
     | '/scan'
     | '/signin'
     | '/results/$matterId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/lab' | '/pricing' | '/scan' | '/signin' | '/results/$matterId'
+  to:
+    | '/'
+    | '/about'
+    | '/lab'
+    | '/pricing'
+    | '/scan'
+    | '/signin'
+    | '/results/$matterId'
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/lab'
     | '/pricing'
     | '/scan'
@@ -95,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   LabRoute: typeof LabRoute
   PricingRoute: typeof PricingRoute
   ScanRoute: typeof ScanRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -151,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   LabRoute: LabRoute,
   PricingRoute: PricingRoute,
   ScanRoute: ScanRoute,

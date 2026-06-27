@@ -11,10 +11,9 @@ import { Atmosphere } from "@/components/motion/Atmosphere";
 const NAV_LINKS = [
   { href: "/#demo", label: "Product" },
   { href: "/#engines", label: "How it works" },
-  { href: "/#thesis", label: "About" },
 ];
 
-export function Nav({ current }: { current?: "landing" | "pricing" }) {
+export function Nav({ current }: { current?: "landing" | "pricing" | "about" }) {
   return (
     <header className="sticky top-0 z-50 border-b border-n300/70 bg-paper/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-3">
@@ -31,6 +30,14 @@ export function Nav({ current }: { current?: "landing" | "pricing" }) {
               {l.label}
             </a>
           ))}
+          <Link
+            to="/about"
+            className={`text-sm font-medium transition-colors hover:text-ink ${
+              current === "about" ? "text-ink" : "text-n500"
+            }`}
+          >
+            About
+          </Link>
           <Link
             to="/pricing"
             className={`text-sm font-medium transition-colors hover:text-ink ${
@@ -60,7 +67,13 @@ export function Nav({ current }: { current?: "landing" | "pricing" }) {
   );
 }
 
-export function Closing() {
+export function Closing({
+  secondaryLabel = "Talk to the team",
+  secondaryHref = "/about",
+}: {
+  secondaryLabel?: string;
+  secondaryHref?: "/about" | "/pricing" | "/scan";
+} = {}) {
   return (
     <section id="audience" className="relative overflow-hidden bg-ink-fixed">
       <Atmosphere intensity="bold" />
@@ -80,12 +93,12 @@ export function Closing() {
           >
             <ScanSearch className="h-4 w-4" /> Scan a skeleton argument
           </Link>
-          <a
-            href="/#faq"
+          <Link
+            to={secondaryHref}
             className="inline-flex items-center gap-2 rounded-lg border border-paper-fixed/25 px-6 py-3 text-sm font-semibold text-paper-fixed transition hover:border-paper-fixed active:scale-[0.97]"
           >
-            Talk to the team <ArrowRight className="h-4 w-4" />
-          </a>
+            {secondaryLabel} <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>
