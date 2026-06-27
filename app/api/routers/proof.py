@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.adapters.local.corpus_adapter import LocalCorpusAdapter
 from app.domain.models import ProofPanel, TransparencyCard
-from app.services.verify_service import get_stored_result
+from app.services.verify_service import get_stored_document, get_stored_result
 
 router = APIRouter(prefix="/api", tags=["proof"])
 
@@ -95,6 +95,8 @@ def get_proof_panel(matter_id: str, idx: int) -> ProofPanel:
         raw_citation=cit.raw_text,
         verdict=l1.verdict.value,
         confidence=l1.confidence,
+        document_context=cit.document_context,
+        document_char_pos=cit.document_char_pos,
         document_claim=document_claim,
         corpus_proposition=corpus_proposition,
         key_paragraph=key_paragraph,
@@ -106,6 +108,46 @@ def get_proof_panel(matter_id: str, idx: int) -> ProofPanel:
         static_explanation=l1.explanation,
         transparency=transparency,
     )
+
+
+@router.get(
+    "/document/{matter_id}",
+    summary="Full text of the uploaded document for a prior verify request",
+)
+def get_document(matter_id: str) -> dict:
+    """
+    Returns the full extracted text of the document submitted to /api/verify.
+    Used by the frontend "Read more" feature — combined with `document_char_pos`
+    from /api/proof, the frontend can scroll directly to the citation in context.
+
+    Also returns a citations index: [{raw_text, char_pos, verdict}] so the
+    frontend can highlight all citations at once.
+    """
+    result = get_stored_result(matter_id)
+    doc_text = get_stored_document(matter_id)
+
+    if result is None or doc_text is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No document found for matter_id '{matter_id}'.",
+        )
+
+    citations_index = [
+        {
+            "idx": i,
+            "raw_text": c.raw_text,
+            "char_pos": c.document_char_pos,
+            "verdict": c.layer1.verdict.value,
+        }
+        for i, c in enumerate(result.results)
+    ]
+
+    return {
+        "matter_id": matter_id,
+        "text": doc_text,
+        "char_count": len(doc_text),
+        "citations": citations_index,
+    }
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

@@ -49,10 +49,11 @@ from app.ports.treatment import ITreatmentRepository
 
 logger = logging.getLogger("traceit.service")
 
-# ── In-memory result store for GET /api/report/{matter_id} ───────────────────
+# ── In-memory result store ────────────────────────────────────────────────────
 _result_store: dict[str, VerifyResult] = {}
+_doc_store: dict[str, str] = {}   # matter_id → full document text (for /document endpoint)
 _store_lock = threading.Lock()
-_MAX_STORED = 100  # keep last N results to avoid unbounded memory growth
+_MAX_STORED = 100
 
 
 def get_stored_result(matter_id: str) -> VerifyResult | None:
@@ -60,12 +61,19 @@ def get_stored_result(matter_id: str) -> VerifyResult | None:
         return _result_store.get(matter_id)
 
 
-def _store_result(matter_id: str, result: VerifyResult) -> None:
+def get_stored_document(matter_id: str) -> str | None:
+    with _store_lock:
+        return _doc_store.get(matter_id)
+
+
+def _store_result(matter_id: str, result: VerifyResult, doc_text: str = "") -> None:
     with _store_lock:
         _result_store[matter_id] = result
+        _doc_store[matter_id] = doc_text
         if len(_result_store) > _MAX_STORED:
             oldest = next(iter(_result_store))
             del _result_store[oldest]
+            _doc_store.pop(oldest, None)
 
 
 # ── Parallel worker limit ─────────────────────────────────────────────────────
@@ -216,11 +224,15 @@ class VerifyService:
                     cit.raw_text, self.corpus, self.treatment, misapplied_table
                 )
 
-        # 5. Reconstruct ordered results + audit
+        # 5. Reconstruct ordered results + audit; attach document context to each
         citation_results: list[CitationResult] = []
         for idx in range(len(extracted)):
             self.audit.record("citation_check", matter_id, [audit_msgs[idx]])
-            citation_results.append(ordered[idx])
+            cit_result = ordered[idx]
+            ctx, pos = _extract_doc_context(doc.text, extracted[idx].raw_text)
+            cit_result.document_context = ctx
+            cit_result.document_char_pos = pos
+            citation_results.append(cit_result)
 
         # 6. Financial summary (deterministic)
         financial = compute_financial_summary(citation_results)
@@ -234,7 +246,7 @@ class VerifyService:
             processing_ms=elapsed_ms,
             audit_trail_hash=self.audit.digest(),
         )
-        _store_result(matter_id, result)
+        _store_result(matter_id, result, doc.text)
         return result
 
 
@@ -393,3 +405,41 @@ def _statute_layer1(raw_text: str, lookup) -> Layer1Result:
         confidence=0.5,
         explanation="Statute verification timed out — could not confirm existence.",
     )
+
+
+_DOC_CONTEXT_WINDOW = 700  # chars each side of the citation
+
+
+def _extract_doc_context(doc_text: str, raw_citation: str) -> tuple[str, int]:
+    """
+    Extract the paragraph surrounding a citation in the document.
+    Returns (context_text, char_position).
+    Falls back through progressively looser matches.
+    """
+    import re
+
+    pos = doc_text.find(raw_citation)
+
+    if pos == -1:
+        # Normalise whitespace — catches PDF-injected newlines mid-citation
+        norm_doc = re.sub(r"\s+", " ", doc_text)
+        norm_cit = re.sub(r"\s+", " ", raw_citation).strip()
+        norm_pos = norm_doc.find(norm_cit)
+        if norm_pos != -1:
+            pos = norm_pos
+
+    if pos == -1:
+        # First party name before " v "
+        first_party = raw_citation.split(" v ")[0].strip()
+        first_party = re.sub(r"^\W+", "", first_party)
+        if len(first_party) >= 4:
+            m = re.search(re.escape(first_party), doc_text, re.IGNORECASE)
+            if m:
+                pos = m.start()
+
+    if pos == -1:
+        pos = 0
+
+    start = max(0, pos - _DOC_CONTEXT_WINDOW)
+    end   = min(len(doc_text), pos + len(raw_citation) + _DOC_CONTEXT_WINDOW)
+    return doc_text[start:end], pos

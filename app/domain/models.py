@@ -106,9 +106,11 @@ class ProofPanel(BaseModel):
     confidence: float
 
     # Side-by-side comparison
-    document_claim: str | None      # what the brief says this case establishes
+    document_context: str | None    # paragraph from the uploaded brief where citation appears
+    document_claim: str | None      # one-sentence summary of what the brief claims
     corpus_proposition: str | None  # what the case actually establishes (one-line summary)
     key_paragraph: str | None       # verbatim excerpt from the judgment
+    document_char_pos: int | None = None  # char offset — frontend uses for scroll-to
 
     # Good-law status
     good_law_status: str            # GOOD_LAW | OVERRULED | DISTINGUISHED | UNAVAILABLE | NOT_CHECKED
@@ -130,6 +132,8 @@ class CitationResult(BaseModel):
     layer2: Layer2Result
     statutory: StatutoryResult | None = None
     context_analysis: ContextAnalysis | None = None
+    document_context: str | None = None   # ±700 chars around the citation in the uploaded doc
+    document_char_pos: int | None = None  # character offset in the original document
 
 
 class FinancialSummary(BaseModel):
