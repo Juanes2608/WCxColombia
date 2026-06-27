@@ -1,0 +1,27 @@
+RESPONDENT'S SKELETON ARGUMENT
+TEST DOCUMENT 04 (fabricated vs. real-but-uncovered)
+
+1. The economic torts. The unlawful means and inducement claims are governed by
+the restatement in OBG Ltd v Allan [2007] UKHL 21, building on the principle in
+Lumley v Gye (1853) 2 E&B 216.
+
+2. Recent authority. That principle was applied to a procurement group in
+Hollingsworth Marine Ltd v Castibel Logistics SA [2020] EWHC 2217 (Comm), where
+the court held that a parent company is fixed with the intention to procure a
+breach even absent knowledge of the contract's precise terms.
+
+3. Restitutionary measure. Damages assessed by reference to a hypothetical
+release fee are available following Wrotham Park Estate Co Ltd v Parkside Homes
+Ltd [1974] 1 WLR 798.
+
+4. Consequential loss. On assessment the court should also follow Verbruck
+Pharmaceuticals Ltd v NHS Commissioning Board [2019] EWCA Civ 1043 and Trenton
+Aviation Holdings Inc v Meridian Underwriting Ltd [2022] EWHC 559 (Comm).
+
+TABLE OF AUTHORITIES
+- OBG Ltd v Allan [2007] UKHL 21
+- Lumley v Gye (1853) 2 E&B 216
+- Hollingsworth Marine Ltd v Castibel Logistics SA [2020] EWHC 2217 (Comm)
+- Wrotham Park Estate Co Ltd v Parkside Homes Ltd [1974] 1 WLR 798
+- Verbruck Pharmaceuticals Ltd v NHS Commissioning Board [2019] EWCA Civ 1043
+- Trenton Aviation Holdings Inc v Meridian Underwriting Ltd [2022] EWHC 559 (Comm)
