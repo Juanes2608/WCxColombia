@@ -211,16 +211,19 @@ class ToolExecutor:
 
     def _get_document_context(self, citation: str) -> dict:
         text = self._doc_text
+        found_quality = "none"
         pos = text.find(citation)
 
-        if pos == -1:
+        if pos != -1:
+            found_quality = "exact"
+        else:
             # Try collapsing whitespace — catches newlines injected by PDF extraction
             normalized_citation = re.sub(r"\s+", " ", citation).strip()
             normalized_text = re.sub(r"\s+", " ", text)
             norm_pos = normalized_text.find(normalized_citation)
             if norm_pos != -1:
-                # Map normalized position back to original text approximately
                 pos = norm_pos
+                found_quality = "whitespace_normalized"
 
         if pos == -1:
             # Try matching on the first party name (before " v ")
@@ -228,17 +231,27 @@ class ToolExecutor:
             first_party = re.sub(r"^\W+", "", first_party)
             if len(first_party) >= 4:
                 m = re.search(re.escape(first_party), text, re.IGNORECASE)
-                pos = m.start() if m else -1
+                if m:
+                    pos = m.start()
+                    found_quality = "partial_name"
 
         if pos == -1:
             # Last resort: first 35 significant chars
             fragment = re.sub(r"^\W+", "", citation)[:35]
             m = re.search(re.escape(fragment), text, re.IGNORECASE)
-            pos = m.start() if m else 0
+            if m:
+                pos = m.start()
+                found_quality = "fragment"
+            else:
+                pos = 0
 
         start = max(0, pos - _CONTEXT_WINDOW)
         end   = min(len(text), pos + len(citation) + _CONTEXT_WINDOW)
-        return {"context": text[start:end]}
+        return {
+            "context": text[start:end],
+            "citation_found": found_quality != "none",
+            "match_quality": found_quality,
+        }
 
     def _check_treatment_history(self, node_id: str) -> dict:
         # Normalise: agent sometimes passes "Donoghue v Stevenson" instead of the slug
@@ -253,11 +266,18 @@ class ToolExecutor:
 
     def _find_supporting_authority(self, proposition: str) -> dict:
         summaries = self._corpus.list_all()
-        query_words = set(re.sub(r"[^a-z\s]", "", proposition.lower()).split()) - {
+        _STOP_WORDS = {
+            # English function words
             "the", "a", "an", "is", "are", "was", "were", "of", "in", "to",
             "for", "and", "or", "that", "this", "it", "by", "on", "at", "be",
-            "has", "have", "had", "with", "not", "from", "as", "its",
+            "has", "have", "had", "with", "not", "from", "as", "its", "which",
+            "where", "when", "whether", "such", "under", "where",
+            # Legal boilerplate — appear in nearly every proposition
+            "court", "courts", "case", "cases", "law", "legal", "right", "rights",
+            "claim", "claims", "must", "shall", "may", "person", "party", "parties",
+            "established", "held", "decision", "principle", "rule", "act", "action",
         }
+        query_words = set(re.sub(r"[^a-z\s]", "", proposition.lower()).split()) - _STOP_WORDS
 
         # Score each case by keyword overlap with the proposition
         scored = []

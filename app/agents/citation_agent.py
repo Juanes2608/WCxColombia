@@ -133,24 +133,32 @@ def run_citation_agent(
 
     verdict_data:   dict | None = None
     tool_calls_log: list[str]   = []
-    provider_used   = "nemotron"
+
+    # Provider stickiness: once primary fails we stay with the fallback for
+    # all remaining turns — avoids a 3-second sleep penalty on every turn.
+    if api_key:
+        active_url, active_key, active_model, provider_used = (
+            _OPENROUTER_URL, api_key, model, "nemotron"
+        )
+    else:
+        active_url, active_key, active_model, provider_used = (
+            _INFERMATIC_URL, infermatic_api_key, infermatic_model, "infermatic"
+        )
 
     for turn in range(_MAX_TURNS):
-        response = _call_with_fallback(
-            messages        = messages,
-            primary_url     = _OPENROUTER_URL,
-            primary_key     = api_key,
-            primary_model   = model,
-            fallback_url    = _INFERMATIC_URL,
-            fallback_key    = infermatic_api_key,
-            fallback_model  = infermatic_model,
-        )
+        response = _call_api(active_url, active_key, active_model, messages)
+
+        if response is None and provider_used == "nemotron" and infermatic_api_key:
+            logger.info("Nemotron failed at turn %d — switching to Infermatic for remaining turns", turn)
+            time.sleep(_RETRY_WAIT)
+            active_url, active_key, active_model, provider_used = (
+                _INFERMATIC_URL, infermatic_api_key, infermatic_model, "infermatic"
+            )
+            response = _call_api(active_url, active_key, active_model, messages)
 
         if response is None:
             logger.warning("All providers failed at turn %d for '%s'", turn, citation[:50])
             return None
-
-        provider_used = response.pop("_provider", "nemotron")
         choice  = response["choices"][0]
         message = choice["message"]
         finish  = choice.get("finish_reason", "")
@@ -205,39 +213,7 @@ def run_citation_agent(
     )
 
 
-# ── Provider chain ────────────────────────────────────────────────────────────
-
-def _call_with_fallback(
-    messages:       list[dict],
-    primary_url:    str,
-    primary_key:    str,
-    primary_model:  str,
-    fallback_url:   str,
-    fallback_key:   str,
-    fallback_model: str,
-) -> dict | None:
-    """
-    Try primary provider (Nemotron via OpenRouter).
-    On 429 or 5xx, wait briefly and switch to Infermatic Qwen3.6.
-    Returns the raw API response with an extra '_provider' key injected,
-    or None if both providers fail.
-    """
-    if primary_key:
-        result = _call_api(primary_url, primary_key, primary_model, messages)
-        if result is not None:
-            result["_provider"] = "nemotron"
-            return result
-        logger.info("Nemotron unavailable — switching to Infermatic fallback")
-        time.sleep(_RETRY_WAIT)
-
-    if fallback_key:
-        result = _call_api(fallback_url, fallback_key, fallback_model, messages)
-        if result is not None:
-            result["_provider"] = "infermatic"
-            return result
-
-    return None
-
+# ── Provider ──────────────────────────────────────────────────────────────────
 
 def _call_api(url: str, api_key: str, model: str, messages: list[dict]) -> dict | None:
     """Single API call. Returns parsed JSON or None on any error."""
@@ -278,6 +254,10 @@ def _call_api(url: str, api_key: str, model: str, messages: list[dict]) -> dict 
 
 def _parse_text_fallback(content: str) -> dict:
     """Last-resort: extract verdict from plain text if agent didn't use tools."""
+    import re
     upper = content.upper()
     verdict = "MISAPPLIED" if "MISAPPLIED" in upper else ("FABRICATED" if "FABRICATED" in upper else "VERIFIED")
-    return {"verdict": verdict, "reason": content[:200], "layer2_verdict": "NOT_CHECKED"}
+    # Extract first sentence for a clean reason (not a raw 200-char dump)
+    sentences = re.split(r"(?<=[.!?])\s+", content.strip())
+    reason = sentences[0][:300] if sentences else content[:200]
+    return {"verdict": verdict, "reason": reason, "layer2_verdict": "NOT_CHECKED"}
