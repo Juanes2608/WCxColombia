@@ -72,7 +72,7 @@ function FullTextModal({
             type="button"
             onClick={onClose}
             className="mt-0.5 shrink-0 rounded-lg p-1.5 text-n400 hover:bg-n100 hover:text-ink"
-            aria-label="Cerrar"
+            aria-label="Close"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -145,7 +145,7 @@ function PassageModal({
             type="button"
             onClick={onClose}
             className="mt-0.5 shrink-0 rounded-lg p-1.5 text-n400 hover:bg-n100 hover:text-ink"
-            aria-label="Cerrar"
+            aria-label="Close"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -237,7 +237,7 @@ function PassageCard({
           {snippetEnd < passage.text.length && <span className="text-n400"> …</span>}
         </p>
         <p className="mt-1.5 font-mono text-[9.5px] text-action group-hover:underline">
-          Click para leer el pasaje completo
+          Click to read full passage
         </p>
       </div>
     </button>
@@ -265,7 +265,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
       .then(r => { if (!cancelled) { setPreview(r); setLoading(false); } })
       .catch(e => {
         if (!cancelled) {
-          setError(e instanceof ApiError ? e.message : "Error cargando la sentencia.");
+          setError(e instanceof ApiError ? e.message : "Error loading judgment.");
           setLoading(false);
         }
       });
@@ -296,7 +296,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
           className="mb-2.5 flex items-center gap-1.5 font-mono text-[10px] text-n500 transition-colors hover:text-ink"
         >
           <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-          Volver · {label}
+          Back · {label}
         </button>
 
         {preview ? (
@@ -340,13 +340,14 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
         {loading && (
           <div className="flex items-center gap-2.5 py-6 text-n500">
             <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
-            <span className="text-[13px]">Cargando sentencia…</span>
+            <span className="text-[13px]">Loading judgment…</span>
           </div>
         )}
 
         {error && (
           <div className="rounded-xl border border-bad-bd bg-bad-bg px-4 py-3">
             <p className="text-[13px] text-bad">{error}</p>
+
           </div>
         )}
 
@@ -355,7 +356,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
           <div className="flex items-start gap-2.5 rounded-xl border border-n200 bg-paper px-4 py-3">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-n400" aria-hidden="true" />
             <p className="text-[13px] text-n600">
-              Esta sentencia no está disponible en el corpus de preview.
+              This judgment is not available in the preview corpus.
             </p>
           </div>
         )}
@@ -366,11 +367,11 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
             <div className="flex items-start gap-2.5 rounded-xl border border-warn-bd bg-warn-bg px-4 py-3">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" aria-hidden="true" />
               <p className="text-[12px] leading-[1.65] text-warn">
-                Solo disponemos del resumen — el documento original es escaneado y no se puede extraer el texto completo.
+                Only the summary is available — the original document is scanned and full text cannot be extracted.
               </p>
             </div>
             <div className="rounded-xl border border-n200 bg-paper px-4 py-3">
-              <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Resumen</p>
+              <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Summary</p>
               <p className="text-[13px] leading-[1.75] text-ink">{preview.proposition}</p>
             </div>
             {preview.bailii_url && (
@@ -381,7 +382,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink transition-colors hover:bg-n100"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Ver en BAILII
+                View on BAILII
               </a>
             )}
           </>
@@ -392,13 +393,13 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
           <>
             {/* Claim used */}
             <div className="rounded-xl border border-n200 bg-paper px-4 py-3">
-              <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Argumento</p>
+              <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Claim</p>
               <p className="text-[12px] leading-[1.65] italic text-n600">"{preview.claim}"</p>
             </div>
 
             {/* Section label */}
             <p className="px-0.5 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">
-              Top {preview.passages.length} párrafo{preview.passages.length !== 1 ? "s" : ""} más relevantes · click para leer completo
+              Top {preview.passages.length} relevant paragraph{preview.passages.length !== 1 ? "s" : ""} · click to read in full
             </p>
 
             {/* Passage cards */}
@@ -418,7 +419,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
               ) : (
                 <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-              {loadingFull ? "Cargando…" : "Leer fallo completo"}
+              {loadingFull ? "Loading…" : "Read full judgment"}
             </button>
 
             {preview.bailii_url && (
@@ -429,7 +430,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink transition-colors hover:bg-n100"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Ver en BAILII
+                View on BAILII
               </a>
             )}
           </>
