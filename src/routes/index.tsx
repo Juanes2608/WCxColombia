@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+
+// Strong ease-out curve (Emil): built-in easings are too weak for entrances.
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 import {
   PlayCircle,
   ScanSearch,
   ShieldCheck,
   Scale,
-  XCircle,
   AlertTriangle,
   CheckCircle2,
   Gem,
@@ -14,17 +16,22 @@ import {
   Quote,
 } from "lucide-react";
 import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
+import { DecryptedText } from "@/components/motion/DecryptedText";
+import { CountUp } from "@/components/motion/CountUp";
+import { AnimatedContent } from "@/components/motion/AnimatedContent";
+import { Atmosphere } from "@/components/motion/Atmosphere";
+import { AppMock } from "@/components/citationguard/AppMock";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CitationGuard — Because the AI invents. The corpus doesn't." },
+      { title: "TraceIt — Because the AI invents. The corpus doesn't." },
       {
         name: "description",
         content:
           "Verify every authority in a High Court skeleton argument — does it exist, is it applied correctly, is it still good law — before you file. Fabricated verdicts from deterministic corpus lookup, never an LLM.",
       },
-      { property: "og:title", content: "CitationGuard — Citation integrity for the Bar" },
+      { property: "og:title", content: "TraceIt — Citation integrity for the Bar" },
       {
         property: "og:description",
         content: "Because the AI invents. The corpus doesn't.",
@@ -35,106 +42,41 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function VerdictRow({
-  tone,
-  icon: Icon,
-  cite,
-  verdict,
-  note,
-}: {
-  tone: "bad" | "warn" | "good";
-  icon: typeof XCircle;
-  cite: string;
-  verdict: string;
-  note: string;
-}) {
-  const pill = {
-    bad: "bg-bad-bg text-bad border-bad-bd",
-    warn: "bg-warn-bg text-warn border-warn-bd",
-    good: "bg-good-bg text-good border-good-bd",
-  }[tone];
-  const iconColor = { bad: "text-bad", warn: "text-warn", good: "text-good" }[tone];
-  return (
-    <div className="flex items-start gap-3 border-b border-n100 px-4 py-3 last:border-0">
-      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconColor}`} aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-mono text-xs text-ink">{cite}</p>
-        <p className="mt-0.5 text-xs text-n500">{note}</p>
-      </div>
-      <span
-        className={`shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide ${pill}`}
-      >
-        {verdict}
-      </span>
-    </div>
-  );
-}
-
-function ProductMock() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-n300 bg-surface shadow-2xl shadow-ink/10">
-      <div className="flex items-center justify-between border-b border-n100 bg-paper px-4 py-2.5">
-        <span className="font-mono text-[11px] text-n500">matter · a4f9…c21</span>
-        <span className="rounded-md bg-bad-bg px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-bad">
-          1 fabricated
-        </span>
-      </div>
-      <VerdictRow
-        tone="bad"
-        icon={XCircle}
-        cite="Carlisle v Rookwood Holdings Ltd [2021] EWHC 4412 (Comm)"
-        verdict="Fabricated"
-        note="No such neutral citation exists in the corpus."
-      />
-      <VerdictRow
-        tone="warn"
-        icon={AlertTriangle}
-        cite="Pepper v Hart [1992] UKHL 3"
-        verdict="Misapplied"
-        note="Cited broader than its ratio — conditions omitted."
-      />
-      <VerdictRow
-        tone="good"
-        icon={CheckCircle2}
-        cite="Donoghue v Stevenson [1932] UKHL 100"
-        verdict="Verified"
-        note="Exists, faithfully stated, still good law."
-      />
-    </div>
-  );
-}
-
 function Hero() {
+  const reduce = useReducedMotion();
   return (
-    <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-2 lg:py-24">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
+    <section className="relative overflow-hidden">
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
+        <motion.div
+          initial={{ opacity: 0, transform: reduce ? "translateY(0px)" : "translateY(16px)" }}
+          animate={{ opacity: 1, transform: "translateY(0px)" }}
+          transition={{ duration: 0.6, ease: EASE_OUT }}
+        >
         <p className="font-mono text-xs uppercase tracking-widest text-action">
           Citation integrity for the Bar
         </p>
-        <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-5xl lg:text-6xl">
+        <h1 className="mt-6 font-editorial text-5xl font-medium leading-[1.0] tracking-tight text-ink sm:text-6xl lg:text-[5rem]">
           Because the AI invents.
           <br />
-          <span className="bg-accent-lime px-1 text-ink">The corpus doesn&rsquo;t.</span>
+          <span className="bg-accent-lime px-1.5 text-ink-fixed">
+            <DecryptedText text={"The corpus doesn’t."} />
+          </span>
         </h1>
         <p className="mt-6 max-w-xl text-lg text-n500">
-          Upload a skeleton argument and CitationGuard checks every authority against the real
+          Upload a skeleton argument and TraceIt checks every authority against the real
           corpus — does it exist, is it applied correctly, is it still good law — before it reaches
           the court. Fabricated verdicts come from deterministic lookup, never a language model.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             to="/scan"
-            className="inline-flex items-center gap-2 rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-paper transition-colors hover:bg-ink-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-paper transition hover:bg-ink-700 active:scale-[0.97]"
           >
             <ScanSearch className="h-4 w-4" /> Scan a skeleton argument
           </Link>
           <a
             href="#demo"
-            className="inline-flex items-center gap-2 rounded-lg border border-n300 px-6 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink"
+            className="inline-flex items-center gap-2 rounded-lg border border-n300 px-6 py-3 text-sm font-semibold text-ink transition hover:border-ink active:scale-[0.97]"
           >
             <PlayCircle className="h-4 w-4" /> See how it works
           </a>
@@ -150,22 +92,23 @@ function Hero() {
         </ul>
       </motion.div>
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
+        initial={{ opacity: 0, transform: reduce ? "translateY(0px)" : "translateY(24px)" }}
+        animate={{ opacity: 1, transform: "translateY(0px)" }}
+        transition={{ duration: 0.7, delay: reduce ? 0 : 0.15, ease: EASE_OUT }}
       >
-        <ProductMock />
-      </motion.div>
+        <AppMock />
+        </motion.div>
+      </div>
     </section>
   );
 }
 
 function Demo() {
   return (
-    <section id="demo" className="border-y border-n300/70 bg-surface">
+    <section id="demo" className="border-y border-white/10 bg-surface-fixed/50 backdrop-blur-2xl">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             From upload to verdict in under two minutes.
           </h2>
           <p className="mt-4 text-lg text-n500">
@@ -218,7 +161,7 @@ function Engines() {
   return (
     <section id="engines" className="mx-auto max-w-6xl px-6 py-20">
       <div className="max-w-2xl">
-        <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           Where a citation costs you the case.
         </h2>
         <p className="mt-4 text-lg text-n500">
@@ -280,19 +223,32 @@ function Engines() {
 }
 
 function Proof() {
-  const stats = [
-    { value: "~1 in 6", label: "rate at which leading LLMs hallucinate legal citations", src: "Stanford HAI" },
+  const stats: {
+    label: string;
+    src: string;
+    value?: string;
+    count?: { prefix?: string; to: number; suffix?: string };
+  }[] = [
+    {
+      count: { prefix: "~1 in ", to: 6 },
+      label: "rate at which leading LLMs hallucinate legal citations",
+      src: "Stanford HAI",
+    },
     { value: "CPR r.44.11", label: "wasted-costs exposure for citing bad authority", src: "Civil Procedure Rules" },
     { value: "0", label: "hallucinated verdicts in deterministic corpus lookup", src: "By construction" },
   ];
   return (
-    <section id="proof" className="border-y border-n300/70 bg-ink">
-      <div className="mx-auto max-w-6xl px-6 py-20 text-paper">
+    <section
+      id="proof"
+      className="relative overflow-hidden border-y border-white/10 bg-ink-fixed"
+    >
+      <Atmosphere />
+      <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 text-paper-fixed">
         <div className="max-w-2xl">
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2 className="font-editorial text-3xl font-semibold tracking-tight sm:text-4xl">
             One fabricated citation is enough to discredit the filing.
           </h2>
-          <p className="mt-4 text-lg text-paper/70">
+          <p className="mt-4 text-lg text-paper-fixed/70">
             Generative AI fabricates legal citations at a measurable rate. Deterministic lookup
             fabricates none — because it can only return what the corpus contains.
           </p>
@@ -300,16 +256,25 @@ function Proof() {
 
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
-              <p className="font-display text-4xl font-semibold text-accent-lime">{s.value}</p>
-              <p className="mt-3 text-sm text-paper/80">{s.label}</p>
-              <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
+            <div
+              key={s.label}
+              className="rounded-2xl border border-white/10 bg-surface-fixed/80 p-7 backdrop-blur-sm"
+            >
+              <p className="font-display text-4xl font-semibold text-accent-lime">
+                {s.count ? (
+                  <CountUp prefix={s.count.prefix} to={s.count.to} suffix={s.count.suffix} />
+                ) : (
+                  s.value
+                )}
+              </p>
+              <p className="mt-3 text-sm text-paper-fixed/80">{s.label}</p>
+              <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper-fixed/40">
                 {s.src}
               </p>
             </div>
           ))}
         </div>
-        <p className="mt-6 font-mono text-xs text-paper/50">
+        <p className="mt-6 font-mono text-xs text-paper-fixed/50">
           Computed deterministically — not LLM-generated.
         </p>
       </div>
@@ -327,13 +292,13 @@ function Thesis() {
     {
       icon: Scale,
       title: "The advocate signs, not the software.",
-      body: "CitationGuard is decision support, not legal advice — and we label every advisory note as advisory.",
+      body: "TraceIt is decision support, not legal advice — and we label every advisory note as advisory.",
     },
   ];
   return (
     <section id="thesis" className="mx-auto max-w-6xl px-6 py-20">
       <div className="max-w-2xl">
-        <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           We sell certainty, not another AI that guesses.
         </h2>
         <p className="mt-4 text-lg text-n500">
@@ -372,7 +337,7 @@ function Faq() {
       a: "Every verdict shows its source and a confidence signal, and coverage gaps are flagged per finding — so a wrong call is visible and auditable, not silent. You review the flags; you don\u2019t outsource the judgement.",
     },
     {
-      q: "Could CitationGuard hallucinate, like the AI it\u2019s checking?",
+      q: "Could TraceIt hallucinate, like the AI it\u2019s checking?",
       a: "The existence verdict can\u2019t. It\u2019s deterministic lookup — it returns what\u2019s in the corpus or nothing. Only clearly-labelled advisory notes involve a model.",
     },
     {
@@ -381,13 +346,13 @@ function Faq() {
     },
     {
       q: "Who\u2019s responsible if a bad citation gets through?",
-      a: "The signing advocate remains responsible for every authority — CitationGuard is decision support, not legal advice. We make the risk visible; we don\u2019t assume it.",
+      a: "The signing advocate remains responsible for every authority — TraceIt is decision support, not legal advice. We make the risk visible; we don\u2019t assume it.",
     },
   ];
   return (
-    <section id="faq" className="border-t border-n300/70 bg-surface">
+    <section id="faq" className="border-t border-white/10 bg-surface-fixed/50 backdrop-blur-2xl">
       <div className="mx-auto max-w-3xl px-6 py-20">
-        <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+        <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           What the person who signs wants to know.
         </h2>
         <dl className="mt-10 divide-y divide-n100">
@@ -408,15 +373,27 @@ function Faq() {
 
 function Landing() {
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="relative min-h-dvh">
       <Nav />
       <Hero />
-      <Demo />
-      <Engines />
-      <Proof />
-      <Thesis />
-      <Faq />
-      <Closing />
+      <AnimatedContent>
+        <Demo />
+      </AnimatedContent>
+      <AnimatedContent>
+        <Engines />
+      </AnimatedContent>
+      <AnimatedContent>
+        <Proof />
+      </AnimatedContent>
+      <AnimatedContent>
+        <Thesis />
+      </AnimatedContent>
+      <AnimatedContent>
+        <Faq />
+      </AnimatedContent>
+      <AnimatedContent>
+        <Closing />
+      </AnimatedContent>
       <Footer />
     </main>
   );

@@ -1,4 +1,4 @@
-# CitationGuard — Fase 2: Dashboard completo
+# TraceIt — Fase 2: Dashboard completo
 
 Respuesta corta a tu pregunta: **no, todavía no es toda la app.** La Fase 1 dejó lista la landing de upload (`/`) y los componentes de soporte (Logo, VerdictBadge, ConfidenceMeter, ScopeBanner, DegradedNotice). El brief exige además **todo el dashboard de resultados** y su familia de componentes. Esta Fase 2 cierra el resto.
 
@@ -29,17 +29,17 @@ types.ts / api-client / mock    hecho         reusar
 - `ScopeBanner` (R10) y `DegradedNotice` (R1) cuando `layer2.source` indique degradación.
 - Layout 3 columnas en desktop (tabla 2/3, panel financiero 1/3), 1 columna en móvil.
 
-### 2. SummaryCards `src/components/citationguard/SummaryCards.tsx`
+### 2. SummaryCards `src/components/TraceIt/SummaryCards.tsx`
 Tarjetas con tokens de marca; colores derivados del verdict-map, nunca hardcode.
 
-### 3. CitationTable `src/components/citationguard/CitationTable.tsx`
+### 3. CitationTable `src/components/TraceIt/CitationTable.tsx`
 - Columnas: `#`, Citation (truncada), Layer 1, Layer 2 (Clio o "—"), Type (case law / statute).
 - Orden: FABRICATED → MISAPPLIED → VERIFIED.
 - Filtros: All / Flagged / Verified.
 - Hover de fila → tooltip con la explicación corta.
 - Click de fila → abre `CitationDetail`.
 
-### 4. CitationDetail `src/components/citationguard/CitationDetail.tsx`
+### 4. CitationDetail `src/components/TraceIt/CitationDetail.tsx`
 Modal (shadcn Dialog) con 5 secciones:
 1. Header: texto de la cita + cerrar.
 2. Layer 1: VerdictBadge + explanation + comparación `proposition_cited` vs `proposition_actual` cuando MISAPPLIED + `ConfidenceMeter`.
@@ -47,13 +47,13 @@ Modal (shadcn Dialog) con 5 secciones:
 4. Statutory: resultado legislation.gov.uk con `excerpt` y link `source_url` (si aplica).
 5. Card de explicación LLM (solo si `llm_explanation !== null`), claramente etiquetada como advisory/no determinista (R7/R9).
 
-### 5. TreatmentTimeline `src/components/citationguard/TreatmentTimeline.tsx`
+### 5. TreatmentTimeline `src/components/TraceIt/TreatmentTimeline.tsx`
 Timeline vertical: OVERRULED (punto rojo) y DISTINGUISHED (punto ámbar), con citing_case, year, court y context en itálica.
 
-### 6. FinancialPanel `src/components/citationguard/FinancialPanel.tsx`
+### 6. FinancialPanel `src/components/TraceIt/FinancialPanel.tsx`
 5 métricas: flag rate %, time saved £, risk exposure avoided £, fabricated, misapplied, verified. Footnote de fuentes determinísticas (Stanford / Law Society / CPR r.44.11) y nota "computed deterministically — not LLM-generated".
 
-### 7. GraphViewer `src/components/citationguard/GraphViewer.tsx` (opcional)
+### 7. GraphViewer `src/components/TraceIt/GraphViewer.tsx` (opcional)
 Solo si `layer2.source === "neo4j"`. Con datos mock equivalentes a `GET /api/graph/{nodeId}`. Colores por status y aristas OVERRULES/DISTINGUISHES/CITES. Si no hay datos, se oculta la sección entera.
 
 ### 8. Pulido de la landing `src/routes/index.tsx`

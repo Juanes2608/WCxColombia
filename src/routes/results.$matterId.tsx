@@ -11,6 +11,16 @@ import { CitationDetail } from "@/components/citationguard/CitationDetail";
 import { FinancialPanel } from "@/components/citationguard/FinancialPanel";
 
 export const Route = createFileRoute("/results/$matterId")({
+  head: () => ({
+    meta: [
+      { title: "Report — TraceIt" },
+      {
+        name: "description",
+        content:
+          "Citation-integrity report: every authority checked for existence, application and good-law status.",
+      },
+    ],
+  }),
   component: ResultsPage,
 });
 
@@ -36,7 +46,7 @@ function ResultsPage() {
 
   if (missing) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+      <main className="relative flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="font-mono text-sm text-n500">matter {matterId}</p>
         <p className="text-ink">
           This report is no longer in memory. Reports live only in this browser session.
@@ -50,7 +60,7 @@ function ResultsPage() {
 
   if (!result) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="relative flex min-h-dvh items-center justify-center">
         <p className="font-mono text-sm text-n500">Loading report…</p>
       </main>
     );
@@ -69,7 +79,7 @@ function ResultsPage() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+      <main className="relative min-h-dvh px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Header */}
           <header className="flex flex-wrap items-center justify-between gap-4">

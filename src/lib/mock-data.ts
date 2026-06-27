@@ -1,4 +1,4 @@
-// CitationGuard — deterministic-feeling mock report generator.
+// TraceIt — deterministic-feeling mock report generator.
 // Produces a realistic VerifyResult that exercises every UI state.
 
 import type { CitationResult, VerifyResult } from "./types";

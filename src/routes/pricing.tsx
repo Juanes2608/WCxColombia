@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+
+// Strong ease-out curve (Emil): built-in easings are too weak for entrances.
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 import {
   ArrowRight,
   Check,
@@ -13,13 +16,13 @@ import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Your return — CitationGuard pricing" },
+      { title: "Your return — TraceIt pricing" },
       {
         name: "description",
         content:
-          "See what citation integrity returns before you pay for it. Put in your own filings, review hours and rate, and CitationGuard shows your break-even, payback and margin in real time.",
+          "See what citation integrity returns before you pay for it. Put in your own filings, review hours and rate, and TraceIt shows your break-even, payback and margin in real time.",
       },
-      { property: "og:title", content: "Your return — CitationGuard pricing" },
+      { property: "og:title", content: "Your return — TraceIt pricing" },
       {
         property: "og:description",
         content: "A pricing page that proves a return, not a cost. Run your own numbers.",
@@ -152,7 +155,7 @@ function PlanCards({
             <button
               type="button"
               onClick={() => onChoose(p.id)}
-              className={`mt-7 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors ${
+              className={`mt-7 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition active:scale-[0.97] ${
                 p.featured
                   ? "bg-accent-lime text-ink hover:opacity-90"
                   : "bg-ink text-paper hover:bg-ink-700"
@@ -224,7 +227,7 @@ function ReturnCalculator({
   const [filings, setFilings] = useState(12);
   const [hoursPerFiling, setHoursPerFiling] = useState(2.5);
   const [rate, setRate] = useState(180);
-  // Honesty knob: how much of that manual checking time CitationGuard truly removes.
+  // Honesty knob: how much of that manual checking time TraceIt truly removes.
   const [automation, setAutomation] = useState(65);
 
   const plan = PLANS.find((p) => p.id === planId)!;
@@ -303,7 +306,7 @@ function ReturnCalculator({
             prefix="£"
           />
           <Field
-            label="Honesty knob — time CitationGuard actually removes"
+            label="Honesty knob — time TraceIt actually removes"
             hint="Be conservative. It assists review; it doesn't replace your sign-off."
             value={automation}
             onChange={setAutomation}
@@ -363,13 +366,13 @@ function ReturnCalculator({
         <div className="mt-7 flex flex-wrap gap-3">
           <Link
             to="/scan"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent-lime px-5 py-3 text-sm font-semibold text-ink transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent-lime px-5 py-3 text-sm font-semibold text-ink transition hover:opacity-90 active:scale-[0.97]"
           >
             Start my first scan <ArrowRight className="h-4 w-4" />
           </Link>
           <a
             href="/#faq"
-            className="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-5 py-3 text-sm font-semibold text-paper transition-colors hover:border-paper"
+            className="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-5 py-3 text-sm font-semibold text-paper transition hover:border-paper active:scale-[0.97]"
           >
             Talk to the team
           </a>
@@ -435,7 +438,7 @@ function DemandSection() {
             The margin is there because the downside is enormous.
           </h2>
           <p className="mt-4 text-lg text-paper/70">
-            You don&rsquo;t pay CitationGuard against zero — you pay it against the cost of one bad
+            You don&rsquo;t pay TraceIt against zero — you pay it against the cost of one bad
             authority reaching the court. That is what makes a few hundred pounds a month an easy
             call.
           </p>
@@ -531,7 +534,7 @@ function Honesty() {
         ))}
       </dl>
       <p className="mt-6 rounded-xl border border-n300 bg-surface p-5 text-sm text-n500">
-        This page is illustrative, not a cotización. CitationGuard is decision support, not legal
+        This page is illustrative, not a cotización. TraceIt is decision support, not legal
         advice — the signing advocate remains responsible for every authority.
       </p>
     </section>
@@ -541,17 +544,18 @@ function Honesty() {
 function PricingPage() {
   const [annual, setAnnual] = useState(true);
   const [planId, setPlanId] = useState<PlanId>("chambers");
+  const reduce = useReducedMotion();
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="relative min-h-dvh">
       <Nav current="pricing" />
 
       {/* 1. Value frame header */}
       <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          initial={{ opacity: 0, transform: reduce ? "translateY(0px)" : "translateY(16px)" }}
+          animate={{ opacity: 1, transform: "translateY(0px)" }}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
           className="max-w-3xl"
         >
           <p className="font-mono text-xs uppercase tracking-widest text-action">

@@ -12,13 +12,13 @@ import {
 export const Route = createFileRoute("/scan")({
   head: () => ({
     meta: [
-      { title: "CitationGuard — Citation integrity for skeleton arguments" },
+      { title: "TraceIt — Citation integrity for skeleton arguments" },
       {
         name: "description",
         content:
           "Verify every legal citation in a High Court skeleton argument: does it exist, is it applied correctly, is it still good law? Deterministic corpus lookup — never an LLM.",
       },
-      { property: "og:title", content: "CitationGuard" },
+      { property: "og:title", content: "TraceIt" },
       {
         property: "og:description",
         content: "Because the AI invents. The corpus doesn't.",
@@ -77,7 +77,7 @@ function Index() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-16">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-2xl">
         <p className="mb-6 font-mono text-xs uppercase tracking-widest text-action">
           Legal-citation integrity checker
@@ -90,7 +90,7 @@ function Index() {
           <span className="bg-accent-lime px-1 text-ink">The corpus doesn&rsquo;t.</span>
         </h1>
         <p className="mt-4 max-w-xl text-base text-n500">
-          Upload a skeleton argument and CitationGuard verifies every authority — does it exist,
+          Upload a skeleton argument and TraceIt verifies every authority — does it exist,
           is it applied correctly, is it still good law — before you file.
         </p>
 

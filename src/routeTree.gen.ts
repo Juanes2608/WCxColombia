@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as LabRouteImport } from './routes/lab'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResultsMatterIdRouteImport } from './routes/results.$matterId'
 
@@ -30,6 +31,11 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabRoute = LabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const ResultsMatterIdRoute = ResultsMatterIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/signin': typeof SigninRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/signin': typeof SigninRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/lab': typeof LabRoute
   '/pricing': typeof PricingRoute
   '/scan': typeof ScanRoute
   '/signin': typeof SigninRoute
@@ -65,14 +74,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pricing' | '/scan' | '/signin' | '/results/$matterId'
+  fullPaths:
+    | '/'
+    | '/lab'
+    | '/pricing'
+    | '/scan'
+    | '/signin'
+    | '/results/$matterId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/pricing' | '/scan' | '/signin' | '/results/$matterId'
-  id: '__root__' | '/' | '/pricing' | '/scan' | '/signin' | '/results/$matterId'
+  to: '/' | '/lab' | '/pricing' | '/scan' | '/signin' | '/results/$matterId'
+  id:
+    | '__root__'
+    | '/'
+    | '/lab'
+    | '/pricing'
+    | '/scan'
+    | '/signin'
+    | '/results/$matterId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LabRoute: typeof LabRoute
   PricingRoute: typeof PricingRoute
   ScanRoute: typeof ScanRoute
   SigninRoute: typeof SigninRoute
@@ -102,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab': {
+      id: '/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof LabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,6 +151,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LabRoute: LabRoute,
   PricingRoute: PricingRoute,
   ScanRoute: ScanRoute,
   SigninRoute: SigninRoute,
@@ -129,3 +160,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

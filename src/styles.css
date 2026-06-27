@@ -11,6 +11,7 @@
 @import "@fontsource/inter/700.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource-variable/fraunces";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -70,7 +71,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* CitationGuard — Forensic brand tokens */
+  /* TraceIt — Forensic brand tokens */
+  --font-editorial: "Fraunces Variable", "Fraunces", Georgia, "Times New Roman", serif;
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
@@ -100,12 +102,17 @@
   --color-unk: var(--unk);
   --color-unk-bg: var(--unk-bg);
   --color-unk-bd: var(--unk-bd);
+
+  /* Non-inverting — always-dark dramatic bands + always-light text on them */
+  --color-ink-fixed: var(--ink-fixed);
+  --color-surface-fixed: var(--surface-fixed);
+  --color-paper-fixed: var(--paper-fixed);
 }
 
 :root {
   --radius: 0.625rem;
 
-  /* CitationGuard — Forensic core palette */
+  /* TraceIt — Forensic core palette */
   --ink: #14181a;
   --ink-700: #20262a;
   --ink-300: #5a625f;
@@ -118,6 +125,19 @@
   --n300: #d7dbcf;
   --n500: #6e726a;
   --n700: #2e322c;
+
+  /* Non-inverting tokens — defined only here, never overridden in .dark, so
+     they stay constant across themes. Used for always-dark dramatic bands. */
+  --ink-fixed: #111516;
+  --surface-fixed: #1c2225;
+  --paper-fixed: #f6f7f2;
+
+  /* Ambient backdrop — theme-aware (RGB triplets) so the citation network, the
+     grid and the glow orbs read with proper contrast on both themes. Light:
+     deep greens + ink grid on paper. Dark (below): lime + white grid on ink. */
+  --ambient-net: 95, 140, 0;
+  --ambient-net-2: 60, 74, 0;
+  --ambient-grid: 20, 24, 26;
 
   /* Verdict tokens (semantic only, WCAG-AA verified) */
   --good: #166534; --good-bg: #e7f4ec; --good-bd: #a6d8b9;
@@ -160,7 +180,7 @@
 }
 
 .dark {
-  /* CitationGuard — Forensic core palette (dark) */
+  /* TraceIt — Forensic core palette (dark) */
   --ink: #f6f7f2;
   --ink-700: #e6e8e0;
   --ink-300: #b9bfb6;
@@ -174,25 +194,32 @@
   --n500: #9aa097;
   --n700: #cfd3c9;
 
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  /* Ambient backdrop (dark) — lime network + white grid read on the ink base. */
+  --ambient-net: 198, 240, 53;
+  --ambient-net-2: 95, 140, 0;
+  --ambient-grid: 255, 255, 255;
+
+  /* Base shadcn tokens mapped to the forensic warm palette (not slate-blue)
+     so bg-background / bg-card stay consistent with bg-paper / bg-surface. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--n100);
+  --secondary-foreground: var(--ink);
+  --muted: var(--n100);
+  --muted-foreground: var(--n500);
+  --accent: var(--n100);
+  --accent-foreground: var(--ink);
+  --destructive: #f87171;
+  --destructive-foreground: #14181a;
+  --border: var(--n300);
+  --input: var(--n300);
+  --ring: var(--n500);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -217,5 +244,90 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+  }
+}
+
+/*
+ * Ambient atmosphere — slow, perpetual motion for the background glow layers.
+ * Compositor-only (transform/opacity). Fully disabled under reduced-motion.
+ */
+@keyframes cg-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(3%, -2%, 0) scale(1.06); }
+  66%  { transform: translate3d(-2%, 2%, 0) scale(0.97); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes cg-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.9; }
+}
+
+@keyframes cg-float {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-4%, 3%, 0) scale(1.08); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes cg-spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+/* Forensic scan beam — sweeps top→bottom across the live-scan panel. */
+@keyframes cg-scan {
+  0%   { transform: translateY(-12%); }
+  100% { transform: translateY(112%); }
+}
+
+/* Background grid scan — a faint lime band sweeps the whole page, then rests.
+   Movement happens in the first half; the rest is a quiet pause between passes. */
+@keyframes cg-grid-scan {
+  0%   { transform: translateY(-25vh); opacity: 0; }
+  6%   { opacity: 1; }
+  50%  { transform: translateY(112vh); opacity: 1; }
+  58%  { opacity: 0; }
+  100% { transform: translateY(112vh); opacity: 0; }
+}
+
+.cg-drift   { animation: cg-drift 26s ease-in-out infinite; }
+.cg-float   { animation: cg-float 32s ease-in-out infinite; }
+.cg-breathe { animation: cg-breathe 9s ease-in-out infinite; }
+.cg-spin-slow { animation: cg-spin-slow 140s linear infinite; }
+.cg-scan { animation: cg-scan 6s linear infinite; }
+.cg-grid-scan { animation: cg-grid-scan 9s linear infinite; }
+
+/* Lab variants */
+@keyframes cg-sonar {
+  0%   { transform: translate(-50%, -50%) scale(0.12); opacity: 0; }
+  14%  { opacity: 0.55; }
+  100% { transform: translate(-50%, -50%) scale(1.75); opacity: 0; }
+}
+
+@keyframes cg-grid-fly {
+  from { transform: translateY(0); }
+  to   { transform: translateY(56px); }
+}
+
+@keyframes cg-spin-rev {
+  to { transform: rotate(-360deg); }
+}
+
+.cg-sonar { animation: cg-sonar 4.6s ease-out infinite; }
+.cg-grid-fly { animation: cg-grid-fly 2.4s linear infinite; }
+.cg-spin-med { animation: cg-spin-slow 26s linear infinite; }
+.cg-spin-rev-med { animation: cg-spin-rev 38s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-drift,
+  .cg-float,
+  .cg-breathe,
+  .cg-spin-slow,
+  .cg-scan,
+  .cg-grid-scan,
+  .cg-sonar,
+  .cg-grid-fly,
+  .cg-spin-med,
+  .cg-spin-rev-med {
+    animation: none !important;
   }
 }

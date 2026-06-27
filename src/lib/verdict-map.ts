@@ -1,4 +1,4 @@
-// CitationGuard — single source of truth for verdict → icon + label + colour.
+// TraceIt — single source of truth for verdict → icon + label + colour.
 // No verdict colour is ever used without its icon AND text label (R2/R9).
 
 import {

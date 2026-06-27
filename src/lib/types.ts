@@ -1,4 +1,4 @@
-// CitationGuard — backend response contract (§3 of the master prompt)
+// TraceIt — backend response contract (§3 of the master prompt)
 
 export interface HealthStatus {
   status: "ok";

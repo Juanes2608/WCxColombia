@@ -7,13 +7,13 @@ import { ThemeToggle } from "@/components/citationguard/ThemeToggle";
 export const Route = createFileRoute("/signin")({
   head: () => ({
     meta: [
-      { title: "Sign in — CitationGuard" },
+      { title: "Sign in — TraceIt" },
       {
         name: "description",
         content:
-          "Sign in to CitationGuard to scan skeleton arguments and verify citation integrity against the corpus.",
+          "Sign in to TraceIt to scan skeleton arguments and verify citation integrity against the corpus.",
       },
-      { property: "og:title", content: "Sign in — CitationGuard" },
+      { property: "og:title", content: "Sign in — TraceIt" },
       {
         property: "og:description",
         content: "Access the deterministic citation-integrity workspace.",
@@ -35,9 +35,9 @@ function SignIn() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="relative min-h-dvh text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link to="/" aria-label="CitationGuard home">
+        <Link to="/" aria-label="TraceIt home">
           <Logo variant="wordmark" />
         </Link>
         <ThemeToggle />
@@ -111,7 +111,7 @@ function SignIn() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-ink-700 disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition hover:bg-ink-700 active:scale-[0.97] disabled:opacity-60 disabled:active:scale-100"
             >
               {submitting ? "Opening workspace…" : "Sign in"}
               {!submitting && <ArrowRight className="h-4 w-4" />}
@@ -119,7 +119,7 @@ function SignIn() {
           </form>
 
           <div className="mt-6 border-t border-n300/70 pt-4 text-center text-sm text-n500">
-            New to CitationGuard?{" "}
+            New to TraceIt?{" "}
             <Link to="/scan" className="font-semibold text-action hover:opacity-80">
               Try the demo
             </Link>

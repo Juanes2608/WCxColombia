@@ -1,4 +1,4 @@
-// CitationGuard — API client.
+// TraceIt — API client.
 // Currently a MOCK implementation. To wire a real backend, replace the bodies of
 // verifyCitations() and healthCheck() with fetch() calls to NEXT_PUBLIC_API_URL;
 // the response shapes (src/lib/types.ts) are the contract and must not change.

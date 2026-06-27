@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
 function getInitial(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined") return true;
   const stored = localStorage.getItem("cg-theme");
   if (stored) return stored === "dark";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Dark-luxury is the primary experience: default to dark unless the user
+  // has explicitly chosen light before.
+  return true;
 }
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
 
   useEffect(() => {
     setDark(getInitial());
