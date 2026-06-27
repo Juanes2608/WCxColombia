@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ExternalLink, AlertTriangle, Loader2 } from "lucide-react";
 import type { PreviewResult } from "@/lib/types";
 import { getPreview, ApiError, API_BASE } from "@/lib/api-client";
@@ -14,9 +14,12 @@ interface Props extends PreviewRequest {
 }
 
 export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
-  const [preview, setPreview] = useState<PreviewResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [preview, setPreview]       = useState<PreviewResult | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
+  const [blobUrl, setBlobUrl]       = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const blobRef                     = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +36,28 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
       });
     return () => { cancelled = true; };
   }, [nodeId, claim]);
+
+  // Fetch PDF as blob so browser renders it inline (bypasses Content-Disposition: attachment)
+  useEffect(() => {
+    if (preview?.preview_mode !== "full") return;
+    let cancelled = false;
+    setPdfLoading(true);
+    const rawUrl = `${API_BASE}/api/preview/${encodeURIComponent(nodeId)}/pdf`;
+    fetch(rawUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        blobRef.current = url;
+        setBlobUrl(url);
+        setPdfLoading(false);
+      })
+      .catch(() => { if (!cancelled) setPdfLoading(false); });
+    return () => {
+      cancelled = true;
+      if (blobRef.current) { URL.revokeObjectURL(blobRef.current); blobRef.current = null; }
+    };
+  }, [nodeId, preview?.preview_mode]);
 
   const pdfUrl = `${API_BASE}/api/preview/${encodeURIComponent(nodeId)}/pdf`;
 
@@ -130,13 +155,20 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
         </div>
       )}
 
-      {/* full — PDF iframe */}
+      {/* full — PDF iframe (blob URL so browser renders inline) */}
       {!loading && !error && preview?.preview_mode === "full" && (
-        <iframe
-          src={pdfUrl}
-          className="min-h-0 flex-1 w-full border-0"
-          title={preview.citation}
-        />
+        pdfLoading || !blobUrl ? (
+          <div className="flex flex-1 items-center justify-center gap-2.5 text-n500">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            <span className="text-[13px]">Loading PDF…</span>
+          </div>
+        ) : (
+          <iframe
+            src={blobUrl}
+            className="min-h-0 flex-1 w-full border-0"
+            title={preview.citation}
+          />
+        )
       )}
     </div>
   );
