@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -27,9 +28,9 @@ import { getDocument } from "@/lib/api-client";
 // ─── Verdict palette ──────────────────────────────────────────────────────────
 
 const V = {
-  VERIFIED:   { sym: "✓", label: "Verified",   text: "text-good", bg: "bg-good-bg", border: "border-good-bd", pill: "bg-good-bg text-good",  dot: "bg-good" },
-  MISAPPLIED: { sym: "▲", label: "Misapplied", text: "text-warn", bg: "bg-warn-bg", border: "border-warn-bd", pill: "bg-warn-bg text-warn",  dot: "bg-warn" },
-  FABRICATED: { sym: "✕", label: "Fabricated", text: "text-bad",  bg: "bg-bad-bg",  border: "border-bad-bd",  pill: "bg-bad-bg text-bad",   dot: "bg-bad"  },
+  VERIFIED:   { Icon: Check,         label: "Verified",   text: "text-good", bg: "bg-good-bg", border: "border-good-bd", pill: "bg-good-bg text-good",  dot: "bg-good" },
+  MISAPPLIED: { Icon: AlertTriangle, label: "Misapplied", text: "text-warn", bg: "bg-warn-bg", border: "border-warn-bd", pill: "bg-warn-bg text-warn",  dot: "bg-warn" },
+  FABRICATED: { Icon: X,             label: "Fabricated", text: "text-bad",  bg: "bg-bad-bg",  border: "border-bad-bd",  pill: "bg-bad-bg text-bad",   dot: "bg-bad"  },
 } as const;
 
 // ─── Two-pass document parser ─────────────────────────────────────────────────
@@ -307,14 +308,18 @@ function FormattedDocument({
         {/* Compact legend */}
         <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-n200 pb-5">
           <div className="flex flex-wrap gap-2">
-            {(["VERIFIED", "MISAPPLIED", "FABRICATED"] as AuthenticityVerdict[]).map((v) => (
-              <span
-                key={v}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${V[v].pill}`}
-              >
-                {V[v].sym} {V[v].label}
-              </span>
-            ))}
+            {(["VERIFIED", "MISAPPLIED", "FABRICATED"] as AuthenticityVerdict[]).map((v) => {
+              const Icon = V[v].Icon;
+              return (
+                <span
+                  key={v}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${V[v].pill}`}
+                >
+                  <Icon className="h-3 w-3" aria-hidden="true" />
+                  {V[v].label}
+                </span>
+              );
+            })}
           </div>
           <DocHint />
         </div>
@@ -346,11 +351,15 @@ function CitationList({
         {/* Same legend as FormattedDocument */}
         <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-n200 pb-5">
           <div className="flex flex-wrap gap-2">
-            {(["VERIFIED", "MISAPPLIED", "FABRICATED"] as AuthenticityVerdict[]).map((v) => (
-              <span key={v} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${V[v].pill}`}>
-                {V[v].sym} {V[v].label}
-              </span>
-            ))}
+            {(["VERIFIED", "MISAPPLIED", "FABRICATED"] as AuthenticityVerdict[]).map((v) => {
+              const Icon = V[v].Icon;
+              return (
+                <span key={v} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${V[v].pill}`}>
+                  <Icon className="h-3 w-3" aria-hidden="true" />
+                  {V[v].label}
+                </span>
+              );
+            })}
           </div>
           <DocHint />
         </div>
@@ -367,11 +376,11 @@ function CitationList({
                 key={i}
                 type="button"
                 onClick={() => onSelect(i)}
-                className={`w-full rounded-xl border px-4 py-3.5 text-left transition-all duration-150
+                className={`w-full rounded-xl border px-4 py-3.5 text-left transition-colors duration-150
                   ${sel ? `${v.border} ${v.bg}` : "border-n200 hover:border-n300 hover:bg-n100/60"}`}
               >
                 <div className="flex items-baseline gap-2.5">
-                  <span className={`shrink-0 font-mono text-[11px] font-bold ${v.text}`}>{v.sym}</span>
+                  <v.Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${v.text}`} aria-hidden="true" />
                   <p className="text-[14px] font-medium leading-snug text-ink">{r.raw_text}</p>
                 </div>
                 {snippet && (
@@ -529,7 +538,8 @@ function RightPanel({
         {/* Verdict + court + status */}
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${v.pill}`}>
-            {v.sym} {v.label}
+            <v.Icon className="h-3 w-3" aria-hidden="true" />
+            {v.label}
           </span>
           {cs && (
             <span className="font-mono text-[10.5px] text-n500">
@@ -657,8 +667,9 @@ function RightPanel({
           <Accordion label="Case summary" preview={ha.case_summary} defaultOpen={false} skipIfShort={true}>
             <p className="text-[13px] leading-[1.7] text-n700">{ha.case_summary}</p>
             {!ha.holding_found && (
-              <p className="mt-2 font-mono text-[10px] text-n400">
-                ⚠ Full judgment text unavailable — based on corpus metadata
+              <p className="mt-2 flex items-center gap-1 font-mono text-[10px] text-n400">
+                <AlertTriangle className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+                Full judgment text unavailable; based on corpus metadata.
               </p>
             )}
           </Accordion>
@@ -710,10 +721,13 @@ function RightPanel({
               {citation.statutory.act} {citation.statutory.year}, s.{citation.statutory.section}
             </p>
             {citation.statutory.exists === false && (
-              <p className="text-[12px] font-semibold text-bad">⚠ Not found on legislation.gov.uk</p>
+              <p className="flex items-center gap-1 text-[12px] font-semibold text-bad">
+                <AlertTriangle className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+                Not found on legislation.gov.uk
+              </p>
             )}
             {citation.statutory.exists === null && (
-              <p className="text-[12px] text-n600">Lookup timed out — not the same as verified.</p>
+              <p className="text-[12px] text-n600">Lookup timed out; not the same as verified.</p>
             )}
             {citation.statutory.excerpt && (
               <p className="border-l-2 border-n300 pl-3 text-[13px] leading-[1.7] text-n600 italic">
@@ -800,7 +814,9 @@ function SummaryPanel({ result, onSelect }: { result: VerifyResult; onSelect: (i
               {fabricated.map(({ r, i }) => (
                 <button key={i} type="button" onClick={() => onSelect(i)}
                   className="w-full rounded-xl border border-bad-bd bg-bad-bg px-4 py-3 text-left transition-opacity hover:opacity-80">
-                  <p className="font-mono text-[10px] font-bold text-bad">✕ Fabricated</p>
+                  <p className="flex items-center gap-1 font-mono text-[10px] font-bold text-bad">
+                    <X className="h-3 w-3 shrink-0" aria-hidden="true" /> Fabricated
+                  </p>
                   <p className="mt-0.5 text-[13px] font-semibold text-ink">{r.raw_text}</p>
                   <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5] text-n600">{r.layer1.explanation}</p>
                 </button>
@@ -818,7 +834,9 @@ function SummaryPanel({ result, onSelect }: { result: VerifyResult; onSelect: (i
               {misapplied.map(({ r, i }) => (
                 <button key={i} type="button" onClick={() => onSelect(i)}
                   className="w-full rounded-xl border border-warn-bd bg-warn-bg px-4 py-3 text-left transition-opacity hover:opacity-80">
-                  <p className="font-mono text-[10px] font-bold text-warn">▲ Misapplied</p>
+                  <p className="flex items-center gap-1 font-mono text-[10px] font-bold text-warn">
+                    <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" /> Misapplied
+                  </p>
                   <p className="mt-0.5 text-[13px] font-semibold text-ink">{r.raw_text}</p>
                   <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-[1.5] text-n600">{r.layer1.explanation}</p>
                 </button>
@@ -835,7 +853,9 @@ function SummaryPanel({ result, onSelect }: { result: VerifyResult; onSelect: (i
             {verified.map(({ r, i }) => (
               <button key={i} type="button" onClick={() => onSelect(i)}
                 className="w-full rounded-xl border border-n200 bg-paper px-4 py-3 text-left hover:bg-n100/60 transition-colors">
-                <p className="font-mono text-[10px] font-bold text-good">✓ Verified</p>
+                <p className="flex items-center gap-1 font-mono text-[10px] font-bold text-good">
+                  <Check className="h-3 w-3 shrink-0" aria-hidden="true" /> Verified
+                </p>
                 <p className="mt-0.5 text-[13px] font-semibold text-ink">{r.raw_text}</p>
               </button>
             ))}

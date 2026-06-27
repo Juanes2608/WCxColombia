@@ -242,7 +242,7 @@ function Finding({ n, c }: { n: number; c: CitationResult }) {
             <Text style={styles.authLabel}>{remLabel}</Text>
             {amendments.map((a, i) => (
               <View key={i} style={styles.authItem}>
-                <Text style={styles.authDash}>—</Text>
+                <Text style={styles.authDash}>•</Text>
                 <View style={styles.authCol}>
                   <Text style={styles.authCite}>{a.citation}</Text>
                   {a.proposition ? <Text style={styles.authProp}>{a.proposition}</Text> : null}
@@ -289,8 +289,8 @@ function TraceitReport({ result }: { result: VerifyResult }) {
   const total = result.total_citations || result.results.length;
 
   const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const sha = result.audit_trail_hash ? `sha256:${result.audit_trail_hash}` : "—";
-  const ms = result.processing_ms != null ? `${result.processing_ms.toLocaleString("en-GB")} ms` : "—";
+  const sha = result.audit_trail_hash ? `sha256:${result.audit_trail_hash}` : "not recorded";
+  const ms = result.processing_ms != null ? `${result.processing_ms.toLocaleString("en-GB")} ms` : "not recorded";
   const shortId = result.matter_id.slice(0, 8);
 
   const parts = [
@@ -358,7 +358,7 @@ function TraceitReport({ result }: { result: VerifyResult }) {
           <Text style={[styles.blockLabel, { marginTop: 12 }]}>Notice</Text>
           <Text style={styles.noticeText}>
             This report is decision support, not legal advice. The existence verdict for each authority
-            is deterministic — it reflects the verified corpus and contains no language-model output.
+            is deterministic: it reflects the verified corpus and contains no language-model output.
             Application and good-law analysis draw on cited sources and are advisory. The signing
             advocate remains responsible for every authority placed before the court.
           </Text>
