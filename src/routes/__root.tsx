@@ -109,11 +109,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Applies the stored theme on <html> before first paint, on EVERY page —
+// including ones that don't render a ThemeToggle (scan, results). Without this,
+// those pages stay stuck on the SSR-default dark class. Defaults to dark (the
+// primary dark-luxury experience) when no preference is stored. No FOUC.
+const THEME_INIT = `(function(){try{var t=localStorage.getItem('cg-theme');document.documentElement.classList.toggle('dark', t ? t==='dark' : true);}catch(e){}})();`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body>
         {children}
