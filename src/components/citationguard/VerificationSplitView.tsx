@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Info,
   Lightbulb,
+  Loader2,
   X,
 } from "lucide-react";
 import type {
@@ -486,12 +487,9 @@ function RightPanel({
   const citedFor   = citation.layer1.proposition_cited;
   const actualProp = citation.layer1.proposition_actual;
 
-  const showAmendments =
-    citation.layer1.verdict === "MISAPPLIED" ||
-    l2.verdict === "OVERRULED";
 
-  // Use brief_pointer.sentence as the submission snippet — it's the exact sentence, not a blob
-  const submissionSentence = ha?.brief_pointer?.sentence ?? null;
+  // Use brief_pointer.sentence as the submission snippet; fall back to document_context for FABRICATED
+  const submissionSentence = ha?.brief_pointer?.sentence ?? citation.document_context ?? null;
   const paraHint = ha?.brief_pointer?.paragraph_hint ?? null;
 
   const l2Color =
@@ -615,13 +613,17 @@ function RightPanel({
           </div>
         )}
 
-        {/* 5. Remediation — suggested replacement citations (MISAPPLIED / FABRICATED) */}
-        {showAmendments && ha?.amendments && ha.amendments.length > 0 && (
+        {/* 5. Remediation — suggested replacement citations */}
+        {ha?.amendments && ha.amendments.length > 0 && (
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Lightbulb className="h-3.5 w-3.5 text-action shrink-0" aria-hidden="true" />
               <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-n400">
-                {l2.verdict === "OVERRULED" ? "Good law alternatives" : "Suggested remediation"}
+                {citation.layer1.verdict === "FABRICATED"
+                  ? "Alternative authorities"
+                  : l2.verdict === "OVERRULED"
+                    ? "Good law alternatives"
+                    : "Suggested remediation"}
               </p>
             </div>
             {l2.verdict === "OVERRULED" && (
@@ -727,8 +729,8 @@ function RightPanel({
           </div>
         )}
 
-        {/* 11. Provenance — ghost, no card */}
-        <Accordion
+        {/* 11. Provenance — ghost, no card; hide when nothing to show (e.g. FABRICATED) */}
+        {(ha?.agent_model || ha?.analysis_mode) && <Accordion
           label={`Provenance · ${Math.round(citation.layer1.confidence * 100)}% confidence`}
           defaultOpen={false}
           ghost={true}
@@ -746,7 +748,7 @@ function RightPanel({
               </p>
             )}
           </div>
-        </Accordion>
+        </Accordion>}
 
       </div>
     </div>
@@ -847,79 +849,31 @@ function SummaryPanel({ result, onSelect }: { result: VerifyResult; onSelect: (i
   );
 }
 
-// ─── Report export ────────────────────────────────────────────────────────────
+// ─── PDF report export ────────────────────────────────────────────────────────
 
-function downloadReport(result: VerifyResult) {
-  const fabricated = result.results.filter(r => r.layer1.verdict === "FABRICATED");
-  const misapplied = result.results.filter(r => r.layer1.verdict === "MISAPPLIED");
-  const verified   = result.results.filter(r => r.layer1.verdict === "VERIFIED");
-
-  const lines: string[] = [
-    "TraceIT — Citation Integrity Report",
-    "=".repeat(52),
-    `Matter:    ${result.matter_id}`,
-    `Audit:     sha256:${result.audit_trail_hash ?? ""}`,
-    `Processed: ${result.processing_ms} ms`,
-    "",
-    "SUMMARY",
-    "-".repeat(30),
-    `Total citations checked : ${result.total_citations}`,
-    `  Verified              : ${verified.length}`,
-    `  Misapplied            : ${misapplied.length}`,
-    `  Fabricated            : ${fabricated.length}`,
-    "",
-  ];
-
-  if (fabricated.length > 0) {
-    lines.push("NON-EXISTENT CITATIONS (FABRICATED)");
-    lines.push("-".repeat(40));
-    for (const r of fabricated) {
-      lines.push(`[✕] ${r.raw_text}`);
-      lines.push(`    ${r.layer1.explanation}`);
-      lines.push("");
-    }
-  }
-
-  if (misapplied.length > 0) {
-    lines.push("MISAPPLIED CITATIONS");
-    lines.push("-".repeat(40));
-    for (const r of misapplied) {
-      lines.push(`[▲] ${r.raw_text}`);
-      lines.push(`    ${r.layer1.explanation}`);
-      if (r.layer1.proposition_cited)  lines.push(`    Cited for          : ${r.layer1.proposition_cited}`);
-      if (r.layer1.proposition_actual) lines.push(`    Actually decides   : ${r.layer1.proposition_actual}`);
-      if (r.holding_analysis?.amendments?.length) {
-        lines.push(`    Suggested instead  :`);
-        for (const a of r.holding_analysis.amendments) {
-          lines.push(`      • ${a.citation}`);
-        }
-      }
-      lines.push("");
-    }
-  }
-
-  lines.push("VERIFIED CITATIONS");
-  lines.push("-".repeat(40));
-  for (const r of verified) {
-    lines.push(`[✓] ${r.raw_text}`);
-    lines.push(`    ${r.layer1.explanation}`);
-    lines.push("");
-  }
-
-  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `traceit-${result.matter_id.slice(0, 8)}.txt`;
+async function downloadReport(result: VerifyResult) {
+  const { pdf } = await import("@react-pdf/renderer");
+  const { ReportDocument } = await import("./ReportPDF");
+  const date = new Date().toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+  const blob = await pdf(
+    <ReportDocument result={result} generatedAt={date} />
+  ).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement("a");
+  a.href    = url;
+  a.download = `traceit-${result.matter_id.slice(0, 8)}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 
-function TopBar({ result, copied, onCopy, onDownload }: {
+function TopBar({ result, copied, exporting, onCopy, onDownload }: {
   result: VerifyResult;
   copied: boolean;
+  exporting: boolean;
   onCopy: () => void;
   onDownload: () => void;
 }) {
@@ -941,11 +895,14 @@ function TopBar({ result, copied, onCopy, onDownload }: {
       <button
         type="button"
         onClick={onDownload}
-        className="inline-flex items-center gap-1 font-mono text-[11px] text-n500 hover:text-paper"
-        title="Download report"
+        disabled={exporting}
+        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-n500 hover:text-paper disabled:opacity-50 transition-opacity"
+        title="Download PDF report"
       >
-        <Download className="h-3 w-3" aria-hidden="true" />
-        Export
+        {exporting
+          ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+          : <Download className="h-3 w-3" aria-hidden="true" />}
+        {exporting ? "Generating…" : "Export PDF"}
       </button>
       <button
         type="button"
@@ -990,6 +947,7 @@ export function VerificationSplitView({
   const [doc, setDoc] = useState<DocumentView | null>(null);
   const [scanning, setScanning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     getDocument(matterId).then(setDoc).catch(() => {});
@@ -1012,7 +970,16 @@ export function VerificationSplitView({
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <TopBar result={result} copied={copied} onCopy={copyHash} onDownload={() => downloadReport(result)} />
+      <TopBar
+        result={result}
+        copied={copied}
+        exporting={exporting}
+        onCopy={copyHash}
+        onDownload={async () => {
+          setExporting(true);
+          try { await downloadReport(result); } finally { setExporting(false); }
+        }}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: document */}
