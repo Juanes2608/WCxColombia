@@ -345,3 +345,90 @@ def run_document(citations: list[Citation], judge: ContextJudge | None = None,
     finally:
         graph.close()
         retriever.close()
+
+
+# ── Stable corpus-access API for the verification backend ──────────────────
+# Two helpers the backend's Neo4jCorpusAdapter wraps. They hide the dual-schema:
+# judgment passages are keyed on the PDF-ingest id, while other layers (e.g.
+# :Proposition) use a different caseId slug. Both helpers resolve whatever id
+# they are given to the passage-backed case before querying, so callers never
+# have to reimplement slug matching.
+
+_PSTORE = None
+_PCASES = None  # cached [(case_id, name)] for cases that actually have passages
+
+
+def _pstore():
+    global _PSTORE
+    if _PSTORE is None:
+        from retrieval.passage_store import PassageStore
+        _PSTORE = PassageStore()
+    return _PSTORE
+
+
+def _passage_cases():
+    """Lazily cache (case_id, name) for every case that has passages."""
+    global _PCASES
+    if _PCASES is None:
+        rows = _pstore()._run(
+            "MATCH (c:Case)-[:HAS_PASSAGE]->(:Passage) "
+            "RETURN DISTINCT c.id AS id, "
+            "coalesce(c.name, c.shortName, c.citation, c.id) AS name")
+        _PCASES = [(r["id"], r["name"] or "") for r in rows]
+    return _PCASES
+
+
+def _resolve_passage_case_id(node_id: str) -> str | None:
+    """Map any layer's id/slug to the passage-backed case_id (or None)."""
+    if not node_id:
+        return None
+    # 1. already a passage case_id? (the PDF-ingest id) -> use as-is
+    if _pstore()._run("MATCH (:Passage {case_id:$id}) RETURN 1 AS x LIMIT 1", id=node_id):
+        return node_id
+    # 2. otherwise (e.g. a propositions-layer slug) resolve by de-slugged name
+    q = node_id.replace("--", " ").replace("-", " ").lower()
+    best, score = None, 0
+    for cid, name in _passage_cases():
+        s = fuzz.token_set_ratio(q, name.lower())
+        if s > score:
+            best, score = cid, s
+    return best if score >= MATCH_THRESHOLD else None
+
+
+def get_passages(node_id: str) -> list[dict]:
+    """
+    Judgment chunks for a case. Handles the dual-schema internally: accepts
+    either the propositions-layer nodeId or the PDF-ingest id.
+    Returns [{para_no, text, case_id}] ordered by para_no (empty if no text).
+    """
+    cid = _resolve_passage_case_id(node_id)
+    if not cid:
+        return []
+    return _pstore()._run(
+        "MATCH (p:Passage {case_id:$cid}) "
+        "RETURN p.para_no AS para_no, p.text AS text, p.case_id AS case_id "
+        "ORDER BY p.para_no", cid=cid)
+
+
+def vector_search(case_id: str, query_vec: list[float], k: int = 8) -> list[dict]:
+    """
+    Semantic search of chunks within one case (resolves the dual-schema id,
+    then hits the `passage_embedding` vector index).
+    The query vector MUST come from the same embedder the passages were built
+    with (local fastembed bge-small-en, 384-dim).
+    Returns [{para_no, text, score}] ordered by score DESC (empty if no text).
+    """
+    cid = _resolve_passage_case_id(case_id)
+    if not cid:
+        return []
+    rows = _pstore().query(query_vec, k=k, case_id=cid)
+    return [{"para_no": r["para_no"], "text": r["text"], "score": r["score"]} for r in rows]
+
+
+def close_passage_helpers() -> None:
+    """Close the cached driver used by get_passages / vector_search."""
+    global _PSTORE, _PCASES
+    if _PSTORE is not None:
+        _PSTORE.close()
+        _PSTORE = None
+    _PCASES = None
