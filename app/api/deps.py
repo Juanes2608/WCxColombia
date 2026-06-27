@@ -56,10 +56,10 @@ def get_corpus_repo() -> ICorpusRepository:
 def get_verify_service() -> VerifyService:
     """
     Creates VerifyService once per process and caches it.
-    Automatically uses Neo4j when configured, local CSV otherwise.
+    Reuses get_corpus_repo() so corpus CSV is loaded only once across all routes.
     """
     return VerifyService(
-        corpus=_make_corpus_adapter(),
+        corpus=get_corpus_repo(),
         treatment=_make_treatment_adapter(),
         statutory=LegislationGovUkAdapter(),
         ingestor=PyMuPdfAdapter(),

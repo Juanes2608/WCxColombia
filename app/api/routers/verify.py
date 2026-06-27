@@ -11,7 +11,6 @@ from app.services.verify_service import VerifyService, get_stored_result
 router = APIRouter(prefix="/api", tags=["verify"])
 
 _MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
-_ALLOWED_TYPES = {"application/pdf", "text/plain"}
 
 
 @router.post("/verify", response_model=VerifyResult, summary="Verify citations in a legal document")
