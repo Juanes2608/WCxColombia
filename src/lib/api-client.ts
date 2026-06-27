@@ -9,7 +9,7 @@ export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const ACCEPTED_EXTENSIONS = [".pdf", ".txt"] as const;
 
 // Strip trailing slashes so `${API_BASE}/api/verify` never doubles up.
-const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+export const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
