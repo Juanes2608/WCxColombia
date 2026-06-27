@@ -94,8 +94,11 @@
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-n100: var(--n100);
+  --color-n200: var(--n200);
   --color-n300: var(--n300);
+  --color-n400: var(--n400);
   --color-n500: var(--n500);
+  --color-n600: var(--n600);
   --color-n700: var(--n700);
 
   --color-good: var(--good);
@@ -130,8 +133,11 @@
   --paper: #f6f7f2;
   --surface: #ffffff;
   --n100: #ecefe6;
+  --n200: #e2e5da;
   --n300: #d7dbcf;
+  --n400: #a2a69c;
   --n500: #6e726a;
+  --n600: #4e524b;
   --n700: #2e322c;
 
   /* Non-inverting tokens — defined only here, never overridden in .dark, so
@@ -198,9 +204,20 @@
   --paper: #14181a;
   --surface: #1c2225;
   --n100: #262c2e;
+  --n200: #2e3436;
   --n300: #363d3e;
+  --n400: #686e6a;
   --n500: #9aa097;
+  --n600: #b4b9b0;
   --n700: #cfd3c9;
+
+  /* Verdict tokens (dark) — the soft pastel fills are light, so on the dark base
+     they go to dark tints (light text reads on them) and the verdict text/solid
+     colours brighten to stay legible. Light values live in :root unchanged. */
+  --good: #6ee7a0; --good-bg: #16271d; --good-bd: #2f5740;
+  --warn: #eab676; --warn-bg: #2a1f12; --warn-bd: #574328;
+  --bad: #f28b8b; --bad-bg: #2c1719; --bad-bd: #5e3236;
+  --unk: #b9bfb6; --unk-bg: #262c2e; --unk-bd: #3a4036;
 
   /* Ambient backdrop (dark) — lime network + white grid read on the ink base. */
   --ambient-net: 198, 240, 53;

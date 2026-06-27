@@ -47,7 +47,7 @@ const ROWS: Row[] = [
 const L1ICON = { bad: XCircle, warn: AlertTriangle, good: CheckCircle2 } as const;
 
 const PILL: Record<Tone, string> = {
-  bad: "bg-bad text-white border-bad",
+  bad: "bg-[#b91c1c] text-white border-[#b91c1c]",
   warn: "bg-warn-bg text-warn border-warn-bd",
   good: "bg-good-bg text-good border-good-bd",
 };
