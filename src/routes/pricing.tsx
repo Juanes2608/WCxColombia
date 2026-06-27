@@ -423,12 +423,12 @@ function ReturnCalculator({
           >
             Start my first scan <ArrowRight className="h-4 w-4" />
           </Link>
-          <a
-            href="/#faq"
+          <Link
+            to="/about"
             className="inline-flex items-center gap-2 rounded-lg border border-paper/25 px-5 py-3 text-sm font-semibold text-paper transition hover:border-paper active:scale-[0.97]"
           >
             Talk to the team
-          </a>
+          </Link>
         </div>
       </div>
     </div>
