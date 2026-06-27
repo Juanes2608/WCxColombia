@@ -76,6 +76,15 @@ export interface NumericBound {
   unit?: string;
 }
 
+/** A documented "time captured" posture that sets both honesty knobs at once. */
+export interface CaptureStance {
+  id: "conservative" | "realistic" | "optimistic";
+  label: string;
+  automationPct: number; // % of manual review time removed
+  valueRealizationPct: number; // % of freed hours that become billed money
+  note: string;
+}
+
 export interface BuyerPerSeat {
   valueMonthly: number; // realized
   costMonthly: number;
@@ -129,6 +138,7 @@ export interface ModelSnapshot {
   tier: TierId;
   inputs: CalculatorInputs; // current calculator state the LLM may adjust
   bounds: Record<string, NumericBound>; // valid min/max/step per numeric input
+  captureStances: CaptureStance[]; // named postures for the two honesty knobs
   buyer: BuyerEconomics;
   seller: SellerEconomics;
   buyerScenarios: ScenarioSet<BuyerEconomics>;

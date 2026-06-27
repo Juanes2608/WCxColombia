@@ -3,6 +3,7 @@ import { computeBuyerEconomics } from "./buyer";
 import { computeSellerEconomics } from "./seller";
 import { buyerScenarios, sellerScenarios } from "./scenarios";
 import { INPUT_BOUNDS, toBuyerInputs, toSellerInputs } from "./inputs";
+import { CAPTURE_STANCES } from "./stances";
 import type { CalculatorInputs, ModelSnapshot } from "./types";
 
 /**
@@ -18,6 +19,7 @@ export function buildSnapshot(inputs: CalculatorInputs): ModelSnapshot {
     tier: inputs.tier,
     inputs,
     bounds: INPUT_BOUNDS,
+    captureStances: CAPTURE_STANCES,
     buyer: computeBuyerEconomics(buyerInputs, tier),
     seller: computeSellerEconomics(sellerInputs, tier),
     buyerScenarios: buyerScenarios(buyerInputs, tier),
@@ -52,6 +54,8 @@ export function buildSystemPrompt(snapshot: ModelSnapshot): string {
     "- billingCycle: 'monthly' | 'annual'",
     "- seats, filingsPerMonth, hoursPerFiling, blendedRate: numbers",
     "- automationPct, valueRealizationPct: numbers in percent (0..100)",
+    "When the user names a posture ('be conservative', 'optimistic case'), set BOTH",
+    "automationPct and valueRealizationPct from the matching entry in snapshot.captureStances.",
     "Respect snapshot.bounds; out-of-range values are clamped. To change seats meaningfully,",
     "set tier to 'enterprise' (other tiers are single-seat). After you emit the block the engine",
     "recomputes and you receive a fresh MODEL_SNAPSHOT — only THEN state the new outputs.",

@@ -22,12 +22,31 @@ export function ThemeToggle() {
     root.classList.toggle("dark", dark);
   }, [dark]);
 
+  const apply = (next: boolean) => {
+    // Mutate the DOM synchronously so the View Transition can snapshot it.
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("cg-theme", next ? "dark" : "light");
+    setDark(next);
+  };
+
   const toggle = () => {
-    setDark((d) => {
-      const next = !d;
-      localStorage.setItem("cg-theme", next ? "dark" : "light");
-      return next;
-    });
+    const next = !dark;
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const startViewTransition = (
+      document as Document & {
+        startViewTransition?: (cb: () => void) => unknown;
+      }
+    ).startViewTransition;
+    // A smooth cross-fade of the whole page on theme flip — the one moment that
+    // otherwise hard-cuts. Falls back to an instant swap where unsupported or
+    // when the user prefers reduced motion.
+    if (prefersReduced || typeof startViewTransition !== "function") {
+      apply(next);
+      return;
+    }
+    startViewTransition.call(document, () => apply(next));
   };
 
   return (

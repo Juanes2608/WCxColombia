@@ -35,7 +35,7 @@ function Lab() {
             <span className="mark-lime">in motion.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-paper-fixed/55">
-            The &ldquo;working&rdquo; animation — orbiting nodes around the TraceIt scan-frame —
+            The &ldquo;working&rdquo; animation (orbiting nodes around the TraceIt scan-frame),
             shown wherever the app is processing: verifying a filing or loading a report. Pick a
             background below to see it in context.
           </p>

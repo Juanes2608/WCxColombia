@@ -117,7 +117,7 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
         // Apply already stands; just note the calculator updated.
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: "Calculator updated — see the new figures above." },
+          { role: "assistant", content: "Calculator updated. See the new figures above." },
         ]);
       }
     } catch (e: unknown) {
@@ -168,7 +168,7 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
               {messages.length === 0 && (
                 <p className="text-sm text-n500">
                   I read the live calculator and only use its deterministic figures. Ask me to explain
-                  them — or to change them:{" "}
+                  them, or to change them:{" "}
                   <span className="text-ink">&ldquo;try 200 lawyers at &pound;400/h&rdquo;</span>
                   {" "}or{" "}
                   <span className="text-ink">&ldquo;what&rsquo;s the margin for White &amp; Case?&rdquo;</span>
@@ -227,7 +227,7 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder="Ask about costs, ROI — or 'try 200 lawyers'…"
+                placeholder="Ask about costs, ROI, or 'try 200 lawyers'…"
                 className="flex-1 rounded-lg border border-n300 bg-paper px-3 py-2 text-sm outline-none focus-visible:border-action"
                 aria-label="Type your question"
               />
@@ -253,13 +253,27 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-ink shadow-2xl shadow-ink/30 ring-1 ring-accent-lime/25 transition hover:scale-105 hover:ring-accent-lime/50 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-lime"
       >
-        {busy ? (
-          <ProcessingOrbit className="h-14 w-14 rounded-full border-0 shadow-none ring-0" />
-        ) : open ? (
-          <X className="h-6 w-6 text-accent-lime" />
-        ) : (
-          <Logo variant="iso" className="h-7 w-7 text-paper" />
-        )}
+        {/* Cross-fade the icon between idle / open / busy so it never hard-swaps
+            (Emil: nothing appears from nothing). A faint blur masks the swap; under
+            reduced motion only opacity changes. */}
+        <AnimatePresence initial={false}>
+          <motion.span
+            key={busy ? "busy" : open ? "open" : "idle"}
+            initial={{ opacity: 0, ...(reduce ? {} : { filter: "blur(4px)" }) }}
+            animate={{ opacity: 1, ...(reduce ? {} : { filter: "blur(0px)" }) }}
+            exit={{ opacity: 0, ...(reduce ? {} : { filter: "blur(4px)" }) }}
+            transition={{ duration: 0.15, ease: EASE_OUT }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            {busy ? (
+              <ProcessingOrbit className="h-14 w-14 rounded-full border-0 shadow-none ring-0" />
+            ) : open ? (
+              <X className="h-6 w-6 text-accent-lime" />
+            ) : (
+              <Logo variant="iso" className="h-7 w-7 text-paper" />
+            )}
+          </motion.span>
+        </AnimatePresence>
       </button>
     </>
   );

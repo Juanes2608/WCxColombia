@@ -24,6 +24,9 @@ import {
   toBuyerInputs,
   toSellerInputs,
   changedKeys,
+  CAPTURE_STANCES,
+  matchStance,
+  effectiveCapturePct,
   type CalculatorInputs,
   type TierId,
 } from "@/lib/pricing";
@@ -83,10 +86,10 @@ function PlanCards({
         return (
           <div
             key={p.id}
-            className={`relative flex flex-col rounded-2xl p-7 ${
+            className={`relative flex flex-col rounded-2xl p-7 transition-[transform,border-color] duration-200 hover:-translate-y-1 ${
               p.featured
                 ? "border-2 border-ink bg-ink text-paper shadow-2xl shadow-ink/20 lg:-mt-4 lg:mb-4"
-                : "border border-n300 bg-surface"
+                : "border border-n300 bg-surface hover:border-ink-300"
             }`}
           >
             {p.featured && (
@@ -131,7 +134,7 @@ function PlanCards({
             <button
               type="button"
               onClick={() => onChoose(p.id)}
-              className={`mt-7 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition active:scale-[0.97] ${
+              className={`mt-7 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-ink ${
                 p.featured
                   ? "bg-accent-lime text-ink hover:opacity-90"
                   : "bg-ink text-paper hover:bg-ink-700"
@@ -170,11 +173,15 @@ function Field({
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-lg transition-shadow duration-300 ${
-        highlight ? "shadow-[0_0_0_2px_var(--color-accent-lime,#bef264)]" : ""
-      }`}
-    >
+    <div className="relative rounded-lg">
+      {/* Flash ring on apply — the ring (box-shadow) is static; only its opacity
+          animates, so the highlight stays on the compositor instead of repainting. */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 rounded-lg ring-2 ring-accent-lime transition-opacity duration-300 ${
+          highlight ? "opacity-100" : "opacity-0"
+        }`}
+      />
       <div className="flex items-baseline justify-between">
         <label className="text-sm font-medium text-ink">{label}</label>
         <span className="font-mono text-sm text-ink">
@@ -215,6 +222,7 @@ function ReturnCalculator({
   const [seats, setSeats] = useState(793);
   const [realization, setRealization] = useState(50);
   const [highlight, setHighlight] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tier = TIERS[planId];
@@ -230,6 +238,14 @@ function ReturnCalculator({
     valueRealizationPct: realization,
   };
   const inputs = toBuyerInputs(calcInputs);
+
+  // "Time captured" readout: the two honesty knobs collapsed into one figure.
+  const effPct = effectiveCapturePct(automation, realization);
+  const savedPerFiling = hoursPerFiling * rate * effPct;
+  const activeStance = matchStance(automation, realization);
+  const stanceNote =
+    CAPTURE_STANCES.find((s) => s.id === activeStance)?.note ??
+    "Custom, fine-tuned to your own numbers.";
 
   // Apply LLM-proposed inputs to the sliders and briefly flash what moved.
   // The engine recomputes every output reactively — the model never sets a result.
@@ -300,13 +316,22 @@ function ReturnCalculator({
                 key={p.id}
                 type="button"
                 onClick={() => setPlanId(p.id)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`relative rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                   p.id === planId
-                    ? "border-ink bg-ink text-paper"
+                    ? "border-transparent text-paper"
                     : "border-n300 text-n500 hover:border-ink"
                 }`}
               >
-                {p.name} · {formatGBP(tierPrice)}{priceSuffix}
+                {p.id === planId && (
+                  <motion.span
+                    layoutId="pricing-plan-pill"
+                    className="absolute inset-0 rounded-lg bg-ink"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  />
+                )}
+                <span className="relative z-10">
+                  {p.name} · {formatGBP(tierPrice)}{priceSuffix}
+                </span>
               </button>
             );
           })}
@@ -376,28 +401,77 @@ function ReturnCalculator({
             prefix="£"
             highlight={highlight.includes("blendedRate")}
           />
-          <Field
-            label="Honesty knob: time TraceIt actually removes"
-            hint="Be conservative. It assists review; it doesn't replace your sign-off."
-            value={automation}
-            onChange={setAutomation}
-            min={20}
-            max={100}
-            step={5}
-            suffix="%"
-            highlight={highlight.includes("automationPct")}
-          />
-          <Field
-            label="Realization: % of saved hours that turn into £"
-            hint="Only counts if those hours are re-billed or free up billable capacity."
-            value={realization}
-            onChange={setRealization}
-            min={0}
-            max={100}
-            step={5}
-            suffix="%"
-            highlight={highlight.includes("valueRealizationPct")}
-          />
+          {/* Time captured: pick a posture instead of guessing two numbers */}
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label className="text-sm font-medium text-ink">Time captured</label>
+              <span className="font-mono text-sm text-ink">
+                ≈{Math.round(effPct * 100)}% · {formatGBP(savedPerFiling)}/filing
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-n500">
+              How much review time TraceIt removes, and how much of it turns into billed money. Pick a
+              posture instead of estimating two percentages.
+            </p>
+
+            <div className="mt-2 inline-flex rounded-lg border border-n300 bg-surface p-0.5">
+              {CAPTURE_STANCES.map((s) => {
+                const active = activeStance === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setAutomation(s.automationPct);
+                      setRealization(s.valueRealizationPct);
+                    }}
+                    aria-pressed={active}
+                    className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                      active ? "bg-ink text-paper" : "text-n500 hover:text-ink"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-n500">{stanceNote}</p>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="mt-2 text-xs font-semibold text-action hover:underline"
+            >
+              {showAdvanced ? "Hide advanced" : "Advanced: fine-tune the two knobs"}
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-4 space-y-7 border-l-2 border-n300 pl-4">
+                <Field
+                  label="Honesty knob: time TraceIt actually removes"
+                  hint="Be conservative. It assists review; it doesn't replace your sign-off."
+                  value={automation}
+                  onChange={setAutomation}
+                  min={20}
+                  max={100}
+                  step={5}
+                  suffix="%"
+                  highlight={highlight.includes("automationPct")}
+                />
+                <Field
+                  label="Realization: % of saved hours that turn into £"
+                  hint="Only counts if those hours are re-billed or free up billable capacity."
+                  value={realization}
+                  onChange={setRealization}
+                  min={0}
+                  max={100}
+                  step={5}
+                  suffix="%"
+                  highlight={highlight.includes("valueRealizationPct")}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -529,14 +603,14 @@ function DemandSection() {
             call.
           </p>
         </div>
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2">
           <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
             <p className="font-display text-4xl font-semibold text-accent-lime">
               {Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}–
               {Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%
             </p>
             <p className="mt-3 text-sm text-paper/80">
-              hallucination rate in legal AI tools — Lexis+ AI ({Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}%)
+              hallucination rate in legal AI tools: Lexis+ AI ({Math.round(CONSTANTS.LEGAL_RAG_HALLUCINATION_RATE.value * 100)}%)
               and Westlaw AI ({Math.round(CONSTANTS.WESTLAW_AI_HALLUCINATION_RATE.value * 100)}%) in independent Stanford testing.
               General LLMs reach {Math.round(CONSTANTS.GENERAL_LLM_HALLUCINATION_RATE.value * 100)}%+ on legal citations.
             </p>
@@ -550,22 +624,29 @@ function DemandSection() {
               wasted-costs exposure for putting bad authority before the court.{" "}
               <strong>Ayinde v Haringey [2025] EWHC 1383</strong>: court sanctioned AI-fabricated
               citations, triggering SRA/BSB referrals. Direct wasted costs:{" "}
-              {formatGBP(CONSTANTS.DIRECT_WASTED_COSTS_PER_INCIDENT.value)} per incident —
-              reputational exposure on top.
+              {formatGBP(CONSTANTS.DIRECT_WASTED_COSTS_PER_INCIDENT.value)} per incident,
+              with reputational exposure on top.
             </p>
             <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
               Verified · Civil Procedure Rules · Ayinde [2025] EWHC 1383
             </p>
           </div>
-          <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
-            <p className="font-display text-4xl font-semibold text-accent-lime">0</p>
-            <p className="mt-3 text-sm text-paper/80">
-              hallucinated existence verdicts, because deterministic lookup returns only what the
-              corpus holds.
+
+          {/* TraceIt's answer, broken out wide so the "0" lands as the resolution
+              to the two risks above, not a third equal stat in the row. */}
+          <div className="flex flex-col gap-5 rounded-2xl border-2 border-accent-lime/40 bg-ink-700 p-7 sm:col-span-2 sm:flex-row sm:items-center">
+            <p className="font-display text-6xl font-semibold leading-none text-accent-lime sm:text-7xl">
+              0
             </p>
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
-              By construction
-            </p>
+            <div className="sm:border-l sm:border-paper/15 sm:pl-6">
+              <p className="text-base text-paper/80">
+                hallucinated existence verdicts, because deterministic lookup returns only what the
+                corpus holds.
+              </p>
+              <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-paper/40">
+                By construction
+              </p>
+            </div>
           </div>
         </div>
         <p className="mt-6 max-w-3xl text-sm text-paper/60">
@@ -667,25 +748,42 @@ function PricingPage() {
           </p>
         </motion.div>
 
-        {/* Billing toggle */}
-        <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-n300 bg-surface p-1">
+        {/* Billing toggle — a shared layoutId pill glides between the options
+            instead of the active background hard-swapping. */}
+        <div className="mt-8 inline-flex items-center gap-1 rounded-full border border-n300 bg-surface p-1">
           <button
             type="button"
             onClick={() => setAnnual(false)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-              !annual ? "bg-ink text-paper" : "text-n500"
+            className={`relative rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+              !annual ? "text-paper" : "text-n500 hover:text-ink"
             }`}
           >
-            Monthly
+            {!annual && (
+              <motion.span
+                layoutId="pricing-billing-pill"
+                className="absolute inset-0 rounded-full bg-ink"
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">Monthly</span>
           </button>
           <button
             type="button"
             onClick={() => setAnnual(true)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-              annual ? "bg-ink text-paper" : "text-n500"
+            className={`relative rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+              annual ? "text-paper" : "text-n500 hover:text-ink"
             }`}
           >
-            Annual <span className="text-accent-lime">−20%</span>
+            {annual && (
+              <motion.span
+                layoutId="pricing-billing-pill"
+                className="absolute inset-0 rounded-full bg-ink"
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">
+              Annual <span className="text-accent-lime">−20%</span>
+            </span>
           </button>
         </div>
       </section>

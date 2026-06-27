@@ -10,6 +10,8 @@ export {
   describeChanges, changedKeys,
 } from "./inputs";
 export type { CalculatorAction, NumericInputKey, ParsedReply } from "./inputs";
+export { CAPTURE_STANCES, effectiveCapturePct, matchStance } from "./stances";
+export type { CaptureStanceId } from "./stances";
 export { formatGBP, formatPct, formatRatio, formatMonths } from "./format";
 
 import { TIERS } from "./constants";

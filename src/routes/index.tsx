@@ -107,10 +107,10 @@ function Demo() {
   return (
     <section
       id="demo"
-      className="border-y border-ink/10 bg-surface/80 backdrop-blur-2xl dark:bg-surface/50"
+      className="border-y border-ink/10 bg-surface/80 backdrop-blur-md dark:bg-surface/50"
     >
       <div className="mx-auto max-w-6xl px-6 py-20">
-        <div className="mx-auto max-w-2xl text-center">
+        <div className="max-w-2xl">
           <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             From upload to verdict in under two minutes.
           </h2>
@@ -200,7 +200,10 @@ function Engines() {
         </div>
 
         {supporting.map((c) => (
-          <div key={c.name} className="rounded-2xl border border-n300 bg-surface p-7">
+          <div
+            key={c.name}
+            className="rounded-2xl border border-n300 bg-surface p-7 transition-colors duration-200 hover:border-ink-300"
+          >
             <c.icon className="h-6 w-6 text-action" aria-hidden="true" />
             <h3 className="mt-4 font-display text-xl font-semibold text-ink">{c.name}</h3>
             <p className="mt-2 text-sm text-n500">{c.lede}</p>
@@ -257,8 +260,8 @@ function Proof() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
-          {stats.map((s) => (
+        <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          {stats.slice(0, 2).map((s) => (
             <div
               key={s.label}
               className="rounded-2xl border border-white/10 bg-surface-fixed/80 p-7 backdrop-blur-sm"
@@ -276,6 +279,20 @@ function Proof() {
               </p>
             </div>
           ))}
+
+          {/* The brand payoff, broken out of the row as a wide hero tile: the "0"
+              reads as the answer to the two risks above it, not a third equal stat. */}
+          <div className="flex flex-col gap-5 rounded-2xl border-2 border-accent-lime/40 bg-surface-fixed/80 p-7 backdrop-blur-sm sm:col-span-2 sm:flex-row sm:items-center">
+            <p className="font-display text-6xl font-semibold leading-none text-accent-lime sm:text-7xl">
+              {stats[2].value}
+            </p>
+            <div className="sm:border-l sm:border-white/10 sm:pl-6">
+              <p className="text-base text-paper-fixed/80">{stats[2].label}</p>
+              <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-paper-fixed/40">
+                {stats[2].src}
+              </p>
+            </div>
+          </div>
         </div>
         <p className="mt-6 font-mono text-xs text-paper-fixed/50">
           Computed deterministically, not LLM-generated.
@@ -322,7 +339,10 @@ function Thesis() {
           </p>
         </div>
         {principles.map((p) => (
-          <div key={p.title} className="rounded-2xl border border-n300 bg-surface p-7">
+          <div
+            key={p.title}
+            className="rounded-2xl border border-n300 bg-surface p-7 transition-colors duration-200 hover:border-ink-300"
+          >
             <p.icon className="h-6 w-6 text-ink-300" aria-hidden="true" />
             <h3 className="mt-4 font-display text-lg font-semibold text-ink">{p.title}</h3>
             <p className="mt-3 text-sm text-n500">{p.body}</p>
@@ -355,7 +375,7 @@ function Faq() {
   return (
     <section
       id="faq"
-      className="border-t border-ink/10 bg-surface/80 backdrop-blur-2xl dark:bg-surface/50"
+      className="border-t border-ink/10 bg-surface/80 backdrop-blur-md dark:bg-surface/50"
     >
       <div className="mx-auto max-w-3xl px-6 py-20">
         <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">

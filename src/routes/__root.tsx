@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { MotionConfig } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -136,11 +137,17 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Global animated backdrop, behind every page. Pages that want it visible
-          keep a transparent wrapper; opaque pages (e.g. /lab) naturally hide it. */}
-      <AmbientBackground />
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* reducedMotion="user" makes every Framer animation (including the layout/
+          shared-element transitions on the segmented controls) honour the OS
+          reduced-motion setting automatically — belt-and-suspenders alongside the
+          manual useReducedMotion guards already in place. */}
+      <MotionConfig reducedMotion="user">
+        {/* Global animated backdrop, behind every page. Pages that want it visible
+            keep a transparent wrapper; opaque pages (e.g. /lab) naturally hide it. */}
+        <AmbientBackground />
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </MotionConfig>
     </QueryClientProvider>
   );
 }

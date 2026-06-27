@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import type { CitationResult } from "@/lib/types";
 import {
   Table,
@@ -57,11 +58,18 @@ export function CitationTable({
               key={f.id}
               type="button"
               onClick={() => setFilter(f.id)}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                filter === f.id ? "bg-ink text-paper" : "text-n500 hover:text-ink"
+              className={`relative rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                filter === f.id ? "text-paper" : "text-n500 hover:text-ink"
               }`}
             >
-              {f.label}
+              {filter === f.id && (
+                <motion.span
+                  layoutId="citation-filter-pill"
+                  className="absolute inset-0 rounded-md bg-ink"
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">{f.label}</span>
             </button>
           ))}
         </div>

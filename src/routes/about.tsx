@@ -10,13 +10,13 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "TraceIt — the team" },
+      { title: "TraceIt: the team" },
       {
         name: "description",
         content:
           "The people behind TraceIt: a lawyer, a systems engineer and a finance lead building deterministic citation integrity for litigation.",
       },
-      { property: "og:title", content: "TraceIt — the team" },
+      { property: "og:title", content: "TraceIt: the team" },
       {
         property: "og:description",
         content:
@@ -53,7 +53,7 @@ function Avatar({ member }: { member: TeamMember }) {
 
 function TeamCard({ member }: { member: TeamMember }) {
   return (
-    <li className="flex flex-col rounded-2xl border border-n300 bg-surface p-7">
+    <li className="flex flex-col rounded-2xl border border-n300 bg-surface p-7 transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-ink-300">
       <div className="flex items-center gap-4">
         <Avatar member={member} />
         <div>
@@ -100,8 +100,8 @@ function AboutPage() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-n500">
             TraceIt is built by a lawyer, a systems engineer and a finance lead. We pair courtroom
-            reality with a deterministic verification engine and an honest commercial case — so
-            every citation we clear is one the corpus can vouch for.
+            reality with a deterministic verification engine and an honest commercial case.
+            Every citation we clear is one the corpus can vouch for.
           </p>
         </motion.div>
       </section>

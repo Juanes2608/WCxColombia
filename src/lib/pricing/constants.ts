@@ -115,7 +115,7 @@ const firm: Tier = {
 const enterprise: Tier = {
   id: "enterprise",
   name: "Enterprise (global firm)",
-  forWho: "Global firms — e.g. White & Case disputes/arbitration.",
+  forWho: "Global firms, e.g. White & Case disputes/arbitration.",
   priceMonthly: null,
   pricePerSeatMonthly: H(
     100,
