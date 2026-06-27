@@ -20,10 +20,13 @@ import {
   buyerScenarios,
   sellerScenarios,
   formatGBP,
+  formatMonths,
+  formatPct,
   CONSTANTS,
   toBuyerInputs,
   toSellerInputs,
   changedKeys,
+  computeBusinessCase,
   CAPTURE_STANCES,
   matchStance,
   effectiveCapturePct,
@@ -223,6 +226,7 @@ function ReturnCalculator({
   const [realization, setRealization] = useState(50);
   const [highlight, setHighlight] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tier = TIERS[planId];
@@ -238,6 +242,7 @@ function ReturnCalculator({
     valueRealizationPct: realization,
   };
   const inputs = toBuyerInputs(calcInputs);
+  const bc = computeBusinessCase(calcInputs);
 
   // "Time captured" readout: the two honesty knobs collapsed into one figure.
   const effPct = effectiveCapturePct(automation, realization);
@@ -345,10 +350,10 @@ function ReturnCalculator({
               setPlanId("enterprise");
               setSeats(793);
               setRate(600);
-              setFilings(3);
-              setHoursPerFiling(2.5);
-              setAutomation(65);
-              setRealization(50);
+              setFilings(2);
+              setHoursPerFiling(1.5);
+              setAutomation(50);
+              setRealization(30);
             }}
             className="rounded-lg border border-action px-3 py-1.5 text-xs font-semibold text-action"
           >
@@ -477,6 +482,77 @@ function ReturnCalculator({
 
       {/* Live result */}
       <div className="flex flex-col rounded-2xl border-2 border-ink bg-ink p-7 text-paper">
+        {/* Firm business case — time-first (enterprise / White & Case) */}
+        {planId === "enterprise" && (
+          <div className="mb-6 border-b border-paper/15 pb-6">
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
+              <Info className="h-4 w-4" /> The White &amp; Case business case
+            </div>
+            <p className="mt-1 text-xs text-paper/50">
+              {bc.seats.toLocaleString()} lawyers · ~{Math.round(bc.requestsPerYear).toLocaleString()}{" "}
+              scans/yr · ≈{formatPct(bc.year1CostPctOfFirmRevenue, 2)} of firm revenue
+            </p>
+
+            {/* Review time saved — the only thing we measure */}
+            <div className="mt-4 rounded-xl bg-ink-700 p-5">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-paper/40">
+                Review time saved / yr
+              </p>
+              <p className="mt-1 font-display text-4xl font-semibold text-accent-lime">
+                {formatGBP(bc.timeSavedAnnual)}
+              </p>
+              <p className="mt-1 text-xs text-paper/60">
+                The only value we put a number on — measured from your own hours.
+              </p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <Metric label="Cost · year 1" value={formatGBP(bc.year1Cost)} />
+              <Metric label="Net · year 1" value={formatGBP(bc.year1Net)} highlight={bc.year1Net >= 0} />
+              <Metric
+                label="Payback"
+                value={bc.paybackMonths !== null ? formatMonths(bc.paybackMonths) : "—"}
+              />
+              <Metric label="3-year net" value={formatGBP(bc.threeYearNet)} />
+            </div>
+
+            {/* Cost build-up — at cost, no margin: build it + run it */}
+            <button
+              type="button"
+              onClick={() => setShowCostBreakdown((v) => !v)}
+              className="mt-3 text-xs font-semibold text-accent-lime hover:underline"
+            >
+              {showCostBreakdown ? "Hide cost build-up" : "Cost build-up — at cost, what it takes to build + run it"}
+            </button>
+            {showCostBreakdown && (
+              <div className="mt-3 space-y-1 rounded-xl bg-ink-700/50 p-4 text-xs text-paper/70">
+                <p className="font-semibold text-paper/90">
+                  Build the solution (one-time) — {formatGBP(bc.implementation.total)}
+                </p>
+                <div className="flex justify-between"><span>· Graph + legislation.gov.uk ingestion</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.graphIngestion)}</span></div>
+                <div className="flex justify-between"><span>· Deterministic verdict engine</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.verdictEngine)}</span></div>
+                <div className="flex justify-between"><span>· Backend + frontend + audit trail</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.app)}</span></div>
+                <div className="flex justify-between"><span>· Testing + security hardening</span><span className="font-mono">{formatGBP(bc.implementation.coreBuild.qaHardening)}</span></div>
+                <div className="flex justify-between pt-1"><span>· Deploy: DMS + SSO integration</span><span className="font-mono">{formatGBP(bc.implementation.deployment.integration)}</span></div>
+                <div className="flex justify-between"><span>· Deploy: InfoSec review + pen test</span><span className="font-mono">{formatGBP(bc.implementation.deployment.infosec)}</span></div>
+                <div className="flex justify-between"><span>· Deploy: training ({bc.seats.toLocaleString()} lawyers)</span><span className="font-mono">{formatGBP(bc.implementation.deployment.training)}</span></div>
+                <div className="flex justify-between"><span>· Deploy: project mgmt + pilot</span><span className="font-mono">{formatGBP(bc.implementation.deployment.projectMgmt)}</span></div>
+                <p className="pt-2 font-semibold text-paper/90">
+                  Run it (per year) — {formatGBP(bc.maintenanceAnnual)}
+                </p>
+                <div className="flex justify-between"><span>· AI API ({Math.round(bc.requestsPerYear).toLocaleString()} scans)</span><span className="font-mono">{formatGBP(bc.runCost.llmApiAnnual)}</span></div>
+                <div className="flex justify-between"><span>· Hosting/infra (Neo4j + backend + CDN)</span><span className="font-mono">{formatGBP(bc.runCost.infraAnnual)}</span></div>
+                <div className="flex justify-between"><span>· Ops &amp; maintenance</span><span className="font-mono">{formatGBP(bc.runCost.supportAnnual)}</span></div>
+              </div>
+            )}
+
+            <p className="mt-3 text-[11px] text-paper/40">
+              At cost — no licence, no margin. ⚠ Why now (not priced): the sanction wave — Ayinde [2025]{" "}
+              ({formatGBP(bc.sanctionDirectCost)} wasted costs), Mata v Avianca [2023].
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
           <TrendingUp className="h-4 w-4" /> Your return, live
         </div>

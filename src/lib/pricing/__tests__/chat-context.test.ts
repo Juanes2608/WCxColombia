@@ -24,6 +24,14 @@ describe("chat context", () => {
     expect(snap.disclaimer.length).toBeGreaterThan(0);
     expect(snap.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+  it("snapshot carries the firm TCO (full-dev cost + maintenance, time-only savings)", () => {
+    expect(snap.businessCase.implementation.coreBuild.total).toBeGreaterThan(0);
+    expect(snap.businessCase.year1Cost).toBe(
+      snap.businessCase.implementationOneTime + snap.businessCase.maintenanceAnnual,
+    );
+    expect(snap.businessCase.totalSavedAnnual).toBe(snap.businessCase.timeSavedAnnual);
+    expect(snap.businessCase.paybackMonths).not.toBeNull();
+  });
   it("snapshot includes provenance-labeled constants", () => {
     expect(snap.constants.WC_TOTAL_LAWYERS.provenance).toBe("VERIFIED");
   });

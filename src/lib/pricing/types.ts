@@ -133,12 +133,77 @@ export interface ScenarioSet<T> {
   optimistic: T;
 }
 
+/** Core product build — bottom-up, fixed (you build the engine once). */
+export interface CoreBuildBreakdown {
+  graphIngestion: number; // legislation.gov.uk ingestion + Neo4j graph
+  verdictEngine: number; // deterministic checks + LLM extraction
+  app: number; // backend + frontend
+  qaHardening: number; // testing + security
+  total: number;
+}
+
+/** Deployment into the firm — bottom-up, scales with the rollout. */
+export interface DeploymentBreakdown {
+  integration: number; // DMS + SSO/SAML + data migration
+  infosec: number; // security review + pen test + DPA
+  training: number; // onboarding + train-the-trainer + change mgmt
+  projectMgmt: number; // PM + pilot
+  total: number;
+}
+
+/** Total one-time cost to develop AND deploy the whole solution. */
+export interface ImplementationCost {
+  coreBuild: CoreBuildBreakdown;
+  deployment: DeploymentBreakdown;
+  total: number; // coreBuild.total + deployment.total
+}
+
+/** Annual cost to keep it running (servers + AI requests + ops), bottom-up. */
+export interface RunCost {
+  llmApiAnnual: number; // Anthropic per-scan × volume
+  infraAnnual: number; // Neo4j + hosting + CDN
+  supportAnnual: number; // ops/maintenance labor
+  total: number;
+}
+
+/**
+ * The firm's total cost of ownership for solving the AI-citation problem in-house:
+ * full development (one-time) + maintenance (annual), AT COST — no licence, no
+ * margin. Measured against the only quantifiable benefit: review time saved.
+ * Sanction/reputational risk is narrative, never priced. All figures are computed
+ * deterministically from CalculatorInputs.
+ */
+export interface BusinessCase {
+  seats: number;
+  scansMonthly: number;
+  requestsPerYear: number;
+  // cost to the firm (TCO, no margin)
+  implementation: ImplementationCost; // full development, one-time
+  implementationOneTime: number; // = implementation.total
+  runCost: RunCost; // maintenance detail
+  maintenanceAnnual: number; // = runCost.total
+  year1Cost: number; // implementationOneTime + maintenanceAnnual
+  ongoingAnnualCost: number; // maintenanceAnnual
+  year1CostPctOfFirmRevenue: number;
+  // savings — only what we can measure
+  timeSavedAnnual: number;
+  totalSavedAnnual: number; // = timeSavedAnnual (risk is not priced)
+  // net
+  year1Net: number;
+  paybackMonths: number | null;
+  roiYear1Pct: number | null;
+  threeYearNet: number;
+  // narrative-only (cited, never multiplied into totals)
+  sanctionDirectCost: number; // Ayinde wasted costs, for the "why now"
+}
+
 export interface ModelSnapshot {
   asOf: string;
   tier: TierId;
   inputs: CalculatorInputs; // current calculator state the LLM may adjust
   bounds: Record<string, NumericBound>; // valid min/max/step per numeric input
   captureStances: CaptureStance[]; // named postures for the two honesty knobs
+  businessCase: BusinessCase; // firm-facing cost-to-implement vs savings
   buyer: BuyerEconomics;
   seller: SellerEconomics;
   buyerScenarios: ScenarioSet<BuyerEconomics>;

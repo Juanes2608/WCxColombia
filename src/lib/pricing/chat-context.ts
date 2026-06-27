@@ -4,6 +4,7 @@ import { computeSellerEconomics } from "./seller";
 import { buyerScenarios, sellerScenarios } from "./scenarios";
 import { INPUT_BOUNDS, toBuyerInputs, toSellerInputs } from "./inputs";
 import { CAPTURE_STANCES } from "./stances";
+import { computeBusinessCase } from "./business-case";
 import type { CalculatorInputs, ModelSnapshot } from "./types";
 
 /**
@@ -20,6 +21,7 @@ export function buildSnapshot(inputs: CalculatorInputs): ModelSnapshot {
     inputs,
     bounds: INPUT_BOUNDS,
     captureStances: CAPTURE_STANCES,
+    businessCase: computeBusinessCase(inputs),
     buyer: computeBuyerEconomics(buyerInputs, tier),
     seller: computeSellerEconomics(sellerInputs, tier),
     buyerScenarios: buyerScenarios(buyerInputs, tier),
@@ -41,6 +43,14 @@ export function buildSystemPrompt(snapshot: ModelSnapshot): string {
     "3. Always cite provenance: VERIFIED (sourced) or ASSUMPTION (editable).",
     "4. Every output is computed deterministically by the code, not by you.",
     "5. Remember the disclaimer: it is illustrative, not a firm quote.",
+    "",
+    "THE FIRM'S BUSINESS CASE (total cost of ownership, AT COST — no licence, no margin):",
+    "When asked 'what does it cost / save us', use snapshot.businessCase. Cost = implementation.total",
+    "(full development = implementation.coreBuild + implementation.deployment) one-time +",
+    "maintenanceAnnual (servers + AI requests + ops). year1Cost is both. Savings = timeSavedAnnual",
+    "ONLY — the one thing we can measure. Report year1Net, paybackMonths, threeYearNet. Sanction/",
+    "reputational risk is NOT priced: mention it qualitatively (sanctionDirectCost is the cited",
+    "Ayinde figure) as the strategic 'why now', never as an annual number.",
     "",
     "DRIVING THE CALCULATOR:",
     "When the user asks you to change an input or to run a 'what if' (e.g. 'try 200 lawyers",

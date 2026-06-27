@@ -34,8 +34,20 @@ export const CONSTANTS = {
   REPUTATIONAL_EXPOSURE_PER_INCIDENT: H(
     0,
     "GBP",
-    "SRA/strike-out/PII insurance exposure (qualitative; raise if quantified)",
+    "not priced — reputational damage is intangible; kept qualitative (narrative), never asserted as a £",
   ),
+  // Core product build, bottom-up (≈£700/day blended UK eng). One-time, fixed —
+  // you build the engine once regardless of how many lawyers use it.
+  BUILD_GRAPH_INGESTION: H(56000, "GBP", "legislation.gov.uk ingestion pipeline + Neo4j graph model + case-law relationships; ~80 dev-days"),
+  BUILD_VERDICT_ENGINE: H(35000, "GBP", "deterministic existence/application/good-law checks + LLM citation extraction; ~50 dev-days"),
+  BUILD_APP: H(45000, "GBP", "FastAPI backend + frontend (scan, results, audit trail); ~65 dev-days"),
+  BUILD_QA: H(14000, "GBP", "testing + security hardening; ~20 dev-days"),
+  // Bottom-up one-time deployment labor (≈£700/day blended UK eng/consulting).
+  IMPL_INTEGRATION: H(22000, "GBP", "DMS (iManage/NetDocuments) + SSO/SAML + data migration; ~30 eng-days @ ~£700"),
+  IMPL_INFOSEC: H(18000, "GBP", "client security review + third-party pen test (~£9k) + DPA/data-residency"),
+  IMPL_TRAINING: H(18000, "GBP", "onboarding + train-the-trainer for 793 users + change management + materials"),
+  IMPL_PROJECT: H(12000, "GBP", "project management + 8-week pilot oversight"),
+  ENTERPRISE_INFRA_MONTHLY: H(800, "GBP/mo", "enterprise scale: Neo4j Aura Pro ~£600 + backend/Railway ~£150 + Cloudflare ~£50"),
   // Resolves the 0.43 vs 1-in-6 contradiction: THREE distinct, cited Stanford figures.
   LEGAL_RAG_HALLUCINATION_RATE: V(
     0.17,
@@ -125,7 +137,7 @@ const enterprise: Tier = {
   annualFactor: V(1, "ratio", "enterprise is billed annually, net"),
   scanCapacity: null,
   scanCapacityPerSeat: H(50, "scans/seat/mo", "fair-use per lawyer"),
-  implementationCost: H(5000, "GBP", "enterprise onboarding + SSO"),
+  implementationCost: H(100000, "GBP", "793-lawyer rollout: DMS (iManage) + SSO/SAML + InfoSec review + training; range £75k–£250k"),
   cac: H(40000, "GBP", "legaltech benchmark ~£5k × ~6–8 (BigLaw cycle 6–9mo, ~6.8-stakeholder committee); range £5k–£60k"),
   monthlyChurn: H(0.005, "ratio", "~6%/yr, sticky enterprise"),
   supportMonthly: H(2000, "GBP/mo", "dedicated CSM/account management"),

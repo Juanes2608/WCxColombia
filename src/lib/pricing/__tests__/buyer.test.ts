@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeBuyerEconomics } from "@/lib/pricing/buyer";
-import { TIERS } from "@/lib/pricing/constants";
+import { CONSTANTS, TIERS } from "@/lib/pricing/constants";
 import type { BuyerInputs } from "@/lib/pricing/types";
 
 const wc: BuyerInputs = {
@@ -35,8 +35,11 @@ describe("buyer — White & Case master example", () => {
 describe("buyer — risk EV and edges", () => {
   it("risk EV adds a separate, positive expected value when enabled", () => {
     const withRisk = computeBuyerEconomics({ ...wc, includeRiskEV: true }, TIERS.enterprise);
-    // seats 793 × filings 3 × cites 15 × 0.17 × 0.05 × (13500 + 0)
-    expect(withRisk.riskEVMonthly).toBeCloseTo(793 * 3 * 15 * 0.17 * 0.05 * (13500 + 0), 0);
+    // legacy per-citation EV (gated off in the UI); reference the constant so it
+    // stays correct if the reputational figure changes. The business case uses the
+    // defensible incident-frequency model instead.
+    const reputational = CONSTANTS.REPUTATIONAL_EXPOSURE_PER_INCIDENT.value;
+    expect(withRisk.riskEVMonthly).toBeCloseTo(793 * 3 * 15 * 0.17 * 0.05 * (13500 + reputational), 0);
     expect(withRisk.netBenefitMonthly).toBeGreaterThan(
       computeBuyerEconomics(wc, TIERS.enterprise).netBenefitMonthly,
     );

@@ -6,19 +6,27 @@
 <title>TraceIt — Mapa de posicionamiento competitivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --ink:#14181A;        /* Near Black */
-    --lime:#C6F035;       /* Acid Lime */
-    --action:#5F8C00;     /* Action Green */
-    --paper:#F6F7F2;      /* Soft BG */
-    --n500:#5b6266;
-    --n300:#c9cdc7;
-    --n100:#e7e9e3;
-    --serif:'Fraunces',Georgia,serif;
-    --sans:'Inter',system-ui,-apple-system,sans-serif;
-    --mono:'JetBrains Mono',ui-monospace,monospace;
+    /* TraceIt — forensic dark-luxury (default theme) */
+    --ink:#f6f7f2;
+    --ink-dim:#cfd3c9;
+    --paper:#111516;        /* ink-fixed — deepest band */
+    --surface:#1c2225;
+    --surface-2:#20262a;
+    --lime:#c6f035;
+    --lavender:#ADA8EC;     /* brand violet — the citation quotemark */
+    --action:#a3d335;
+    --n300:#2c3236;         /* hairline borders */
+    --n400:#686e6a;
+    --n500:#9aa097;
+    --n600:#b4b9b0;
+    --grid:#1b2124;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --display:'Space Grotesk','Inter',system-ui,sans-serif;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -27,40 +35,100 @@
     color:var(--ink);
     font-family:var(--sans);
     -webkit-font-smoothing:antialiased;
-    padding:40px 32px 56px;
+    text-rendering:optimizeLegibility;
+    padding:44px 34px 60px;
+    position:relative;
+    overflow-x:hidden;
   }
-  .wrap{max-width:1480px;margin:0 auto}
-  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--action)}
-  .brand .dot{width:18px;height:18px;border:2px solid var(--ink);border-radius:4px;display:inline-grid;place-items:center;font-weight:700;color:var(--ink);position:relative}
-  .brand .dot::after{content:"";position:absolute;inset:3px;background:var(--lime);clip-path:polygon(50% 0,62% 38%,100% 38%,70% 62%,82% 100%,50% 76%,18% 100%,30% 62%,0 38%,38% 38%)}
-  h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.1;margin:14px 0 6px;letter-spacing:-.01em}
-  .sub{color:var(--n500);font-size:15px;max-width:760px;margin:0}
-  .mark{background:linear-gradient(transparent 58%, var(--lime) 58%);padding:0 .12em}
-  .insight{margin:22px 0 28px;border-left:3px solid var(--action);background:#fff;padding:14px 18px;border-radius:0 10px 10px 0;font-size:14.5px;box-shadow:0 1px 0 var(--n100)}
-  .insight b{color:var(--ink)}
-  .maps{display:grid;grid-template-columns:1fr 1fr;gap:26px}
-  @media (max-width:1180px){.maps{grid-template-columns:1fr}}
-  .panel{background:#fff;border:1px solid var(--n100);border-radius:16px;padding:20px 18px 10px;box-shadow:0 6px 24px -18px rgba(20,24,26,.4)}
-  .panel h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:2px 4px 2px}
-  .panel .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--action);margin:0 4px}
-  .panel .read{font-size:12.5px;color:var(--n500);margin:6px 6px 4px;line-height:1.5}
+  /* faint forensic grid + lime glow, echoing the app's ambient backdrop */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(120% 90% at 50% 0%,#000 0%,transparent 78%);
+    mask-image:radial-gradient(120% 90% at 50% 0%,#000 0%,transparent 78%);
+    opacity:.5;
+  }
+  body::after{
+    content:"";position:fixed;top:-280px;right:-160px;width:720px;height:720px;z-index:0;pointer-events:none;
+    background:radial-gradient(circle,rgba(198,240,53,.10),transparent 62%);
+  }
+  .wrap{max-width:1520px;margin:0 auto;position:relative;z-index:1}
+
+  /* brand lockup */
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .iso{width:30px;height:30px;display:block;color:var(--ink)}
+  .brand .wm{font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:-.02em;color:var(--ink)}
+  .brand .wm i{color:var(--lime);font-style:normal}
+  .brand .div{width:1px;height:20px;background:var(--n300)}
+  .brand .kick{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--n500)}
+
+  h1{font-family:var(--serif);font-weight:500;font-size:33px;line-height:1.12;margin:22px 0 8px;letter-spacing:-.012em;max-width:18ch}
+  .sub{color:var(--n500);font-size:15px;max-width:780px;margin:0;line-height:1.55}
+  .sub b{color:var(--ink-dim);font-weight:500}
+  /* lime highlighter — same band geometry as the app's .mark-lime */
+  .mark{
+    color:#111516;padding:0 .14em;border-radius:1px;
+    background-image:linear-gradient(transparent 14%,var(--lime) 14%,var(--lime) 88%,transparent 88%);
+    -webkit-box-decoration-break:clone;box-decoration-break:clone;
+  }
+
+  .insight{
+    margin:24px 0 30px;border-left:2px solid var(--lime);
+    background:linear-gradient(90deg,rgba(198,240,53,.05),transparent 70%);
+    padding:15px 20px;border-radius:0 12px 12px 0;font-size:14.5px;line-height:1.6;color:var(--ink-dim)
+  }
+  .insight b{color:var(--ink);font-weight:600}
+
+  .maps{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  @media (max-width:1200px){.maps{grid-template-columns:1fr}}
+  .panel{
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--n300);border-radius:18px;padding:22px 20px 12px;
+    box-shadow:0 24px 60px -32px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .panel .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--lime);margin:0 2px}
+  .panel h2{font-family:var(--display);font-weight:600;font-size:18.5px;letter-spacing:-.01em;margin:5px 2px 2px;color:var(--ink)}
+  .panel .read{font-size:12.5px;color:var(--n500);margin:8px 4px 4px;line-height:1.55}
+  .panel .read b{color:var(--ink-dim);font-weight:500}
   svg{width:100%;height:auto;display:block}
-  .legend{display:flex;flex-wrap:wrap;gap:16px 22px;align-items:center;margin:20px 4px 0;font-size:12.5px;color:var(--ink)}
-  .legend .it{display:flex;align-items:center;gap:8px}
-  .sw{width:16px;height:16px;display:inline-block;flex:0 0 auto}
-  .foot{margin-top:26px;font-size:11px;color:var(--n500);line-height:1.6;font-family:var(--mono)}
-  .foot b{color:var(--ink)}
-  a{color:var(--action)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;margin:22px 4px 0;font-size:12.5px;color:var(--ink-dim)}
+  .legend .it{display:flex;align-items:center;gap:9px}
+  .sw{width:18px;height:18px;display:inline-block;flex:0 0 auto}
+
+  .foot{margin-top:28px;padding-top:16px;border-top:1px solid var(--n300);font-size:10.5px;color:var(--n500);line-height:1.7;font-family:var(--mono)}
+  .foot b{color:var(--ink-dim);font-weight:500}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><span class="dot"></span> Trace<span style="color:var(--action)">It</span> · Competitive positioning</div>
+
+  <div class="brand">
+    <svg class="iso" viewBox="0 0 512 512" role="img" aria-label="TraceIt">
+      <g fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="square" stroke-linejoin="miter">
+        <path d="M56 456 V56 H456 V388" /><path d="M56 456 H388" />
+      </g>
+      <circle cx="424" cy="424" r="14" fill="currentColor" />
+      <g fill="none" stroke="#c6f035" stroke-width="20" stroke-linecap="square">
+        <path d="M116 174 V116 H174" /><path d="M338 116 H396 V174" />
+        <path d="M116 338 V396 H174" /><path d="M338 396 H396 V338" />
+      </g>
+      <g fill="#ADA8EC" transform="translate(2 -59) scale(1.15)">
+        <path d="M199 209c-31 0-53 23-53 58v62h60v-62h-30c0-21 9-31 30-36l-7-22z" />
+        <path d="M288 209c-31 0-53 23-53 58v62h60v-62h-30c0-21 9-31 30-36l-7-22z" />
+      </g>
+    </svg>
+    <span class="wm">Trace<i>It</i></span>
+    <span class="div"></span>
+    <span class="kick">Competitive positioning</span>
+  </div>
+
   <h1>El cuadrante vacío: <span class="mark">UK + verificación determinista</span></h1>
-  <p class="sub">Mapa de posicionamiento de ~16 herramientas de verificación de citas y legal‑AI. Datos jun&nbsp;2026 (pricing mayormente estimado; re‑verificar antes del pitch).</p>
+  <p class="sub">Mapa de posicionamiento de ~16 herramientas de verificación de citas y legal&#8209;AI. Datos jun&nbsp;2026 (pricing mayormente estimado; re&#8209;verificar antes del pitch).</p>
 
   <div class="insight">
-    <b>Hallazgo central:</b> el cohorte <b>determinista es 100&nbsp;% US</b> (atado a CourtListener); el cohorte <b>UK es 100&nbsp;% generativo / contratos</b>. Solo&nbsp;Wexler toca case&nbsp;law UK y es LLM. → <b>TraceIt es el único en “UK&nbsp;+&nbsp;determinista”</b>, y además el único con <b>good‑law check</b>.
+    <b>Hallazgo central:</b> el cohorte <b>determinista es 100&nbsp;% US</b> (atado a CourtListener); el cohorte <b>UK es 100&nbsp;% generativo / contratos</b>. Solo&nbsp;Wexler toca case&nbsp;law UK y es LLM. → <b>TraceIt es el único en “UK&nbsp;+&nbsp;determinista”</b>, y además el único con <b>good&#8209;law check</b>.
   </div>
 
   <div class="maps">
@@ -68,22 +136,22 @@
       <p class="tag">Mapa B · héroe — white space</p>
       <h2>Cobertura de jurisdicción × Determinismo del veredicto</h2>
       <div id="mapB"></div>
-      <p class="read">El cuadrante superior‑derecho (UK&nbsp;+&nbsp;determinista) está vacío salvo TraceIt. Los cite‑checkers deterministas viven en el superior‑izquierdo (US); los asistentes UK, abajo (generativos).</p>
+      <p class="read">El cuadrante superior‑derecho (<b>UK + determinista</b>) está vacío salvo TraceIt. Los cite‑checkers deterministas viven en el superior‑izquierdo (US); los asistentes UK, abajo (generativos).</p>
     </div>
     <div class="panel">
       <p class="tag">Mapa A · apoyo — categoría</p>
       <h2>Determinismo del veredicto × Amplitud del producto</h2>
       <div id="mapA"></div>
-      <p class="read">Aquí TraceIt comparte el cuadrante inferior‑derecho (determinista&nbsp;+&nbsp;point‑tool) con cite‑checkers US — por eso el Mapa&nbsp;B, que añade jurisdicción, es el que aísla la ventaja.</p>
+      <p class="read">Aquí TraceIt comparte el cuadrante inferior‑derecho (determinista + point‑tool) con cite‑checkers US — por eso el <b>Mapa B</b>, que añade jurisdicción, es el que aísla la ventaja.</p>
     </div>
   </div>
 
   <div class="legend">
-    <span class="it"><svg class="sw" viewBox="0 0 16 16"><polygon points="8,0 10,6 16,6 11,10 13,16 8,12 3,16 5,10 0,6 6,6" fill="#C6F035" stroke="#14181A" stroke-width="1"/></svg> TraceIt (nosotros)</span>
-    <span class="it"><svg class="sw" viewBox="0 0 16 16"><rect x="3.3" y="3.3" width="9.4" height="9.4" transform="rotate(45 8 8)" fill="#5F8C00"/></svg> Cite‑checker determinista (US)</span>
-    <span class="it"><svg class="sw" viewBox="0 0 16 16"><rect x="3.3" y="3.3" width="9.4" height="9.4" transform="rotate(45 8 8)" fill="none" stroke="#9aa09c" stroke-width="1.5"/></svg> Determinista pero solo formato</span>
-    <span class="it"><svg class="sw" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#14181A" opacity="0.6"/></svg> Asistente generativo / LLM</span>
-    <span class="it"><svg class="sw" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#5F8C00" stroke-width="2" stroke-dasharray="3 2"/></svg> Hace good‑law check</span>
+    <span class="it"><svg class="sw" viewBox="0 0 18 18"><polygon points="9,0 11.2,6.6 18,6.6 12.4,11 14.6,18 9,13.6 3.4,18 5.6,11 0,6.6 6.8,6.6" fill="#c6f035" stroke="#111516" stroke-width="1"/></svg> TraceIt (nosotros)</span>
+    <span class="it"><svg class="sw" viewBox="0 0 18 18"><rect x="3.8" y="3.8" width="10.4" height="10.4" transform="rotate(45 9 9)" fill="#ADA8EC"/></svg> Cite‑checker determinista (US)</span>
+    <span class="it"><svg class="sw" viewBox="0 0 18 18"><rect x="3.8" y="3.8" width="10.4" height="10.4" transform="rotate(45 9 9)" fill="none" stroke="#ADA8EC" stroke-width="1.6"/></svg> Determinista pero solo formato</span>
+    <span class="it"><svg class="sw" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.6" fill="#9aa097" opacity="0.55"/></svg> Asistente generativo / LLM</span>
+    <span class="it"><svg class="sw" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7.6" fill="none" stroke="#c6f035" stroke-width="1.8" stroke-dasharray="3 2"/></svg> Halo = hace good‑law check</span>
   </div>
 
   <p class="foot">
@@ -97,22 +165,21 @@ const DATA = [
   {n:'TraceIt', g:'hero',  b:{x:9.0,y:9.0}, a:{x:9.2,y:1.6}, note:'UK · determinista · good-law'},
   {n:'CourtListener / eyecite', g:'detUS', b:{x:0.2,y:9.0}, a:{x:8.4,y:3.0}},
   {n:'JurisCheck',  g:'detUS', b:{x:0.5,y:8.2}, a:{x:8.1,y:1.3}},
-  {n:'CiteCheck AI', g:'detUS', b:{x:0.3,y:7.0}, a:{x:6.8,y:2.1}},
+  {n:'CiteCheck AI', g:'detUS', b:{x:0.3,y:7.2}, a:{x:6.8,y:2.1}},
   {n:'CiteSentinel', g:'detUS', b:{x:1.7,y:7.5}, a:{x:7.5,y:3.4}},
-  {n:'Clearbrief',  g:'detUS', b:{x:1.4,y:6.2}, a:{x:6.2,y:5.0}, note:'sin good-law'},
-  {n:'BriefCatch',  g:'detFmt', b:{x:0.7,y:6.6}, a:{x:6.6,y:4.6}, note:'solo formato'},
+  {n:'Clearbrief',  g:'detUS', b:{x:1.4,y:5.6}, a:{x:6.2,y:5.0}, note:'sin good-law'},
+  {n:'BriefCatch',  g:'detFmt', b:{x:0.7,y:6.4}, a:{x:6.6,y:4.6}, note:'solo formato'},
   {n:'Paxton AI',   g:'gen', b:{x:2.2,y:2.3}, a:{x:2.3,y:7.0}},
   {n:'Alexi',       g:'gen', b:{x:1.0,y:1.2}, a:{x:1.2,y:5.0}},
   {n:'Descrybe.ai', g:'gen', b:{x:1.0,y:3.1}, a:{x:3.1,y:5.0}},
-  {n:'Harvey',      g:'gen', b:{x:5.0,y:1.0}, a:{x:1.0,y:10.0}},
-  {n:'Legora',      g:'gen', b:{x:4.0,y:1.4}, a:{x:1.4,y:9.6}},
+  {n:'Harvey',      g:'gen', b:{x:5.0,y:1.0}, a:{x:1.0,y:9.5}},
+  {n:'Legora',      g:'gen', b:{x:4.0,y:1.4}, a:{x:1.4,y:9.1}},
   {n:'CoCounsel',   g:'gen', b:{x:7.0,y:2.3}, a:{x:2.3,y:9.0}},
   {n:'Lexis+ AI',   g:'gen', b:{x:7.6,y:1.6}, a:{x:1.6,y:8.5}},
   {n:'vLex / Vincent', g:'gen', b:{x:8.4,y:2.7}, a:{x:2.7,y:8.0}},
   {n:'Wexler AI',   g:'gen', b:{x:6.0,y:2.0}, a:{x:2.0,y:6.0}},
 ];
 
-// per-map label offsets {dx,dy,anchor} to avoid collisions
 const LBL = {
   B:{
     'TraceIt':{dx:-16,dy:5,anchor:'end'},
@@ -120,8 +187,8 @@ const LBL = {
     'JurisCheck':{dx:10,dy:3,anchor:'start'},
     'CiteCheck AI':{dx:10,dy:2,anchor:'start'},
     'CiteSentinel':{dx:10,dy:-1,anchor:'start'},
-    'BriefCatch':{dx:10,dy:11,anchor:'start'},
-    'Clearbrief':{dx:10,dy:5,anchor:'start'},
+    'BriefCatch':{dx:10,dy:9,anchor:'start'},
+    'Clearbrief':{dx:10,dy:6,anchor:'start'},
     'Harvey':{dx:10,dy:4,anchor:'start'},
     'Legora':{dx:10,dy:4,anchor:'start'},
     'CoCounsel':{dx:10,dy:-2,anchor:'start'},
@@ -135,7 +202,7 @@ const LBL = {
   A:{
     'TraceIt':{dx:-16,dy:-8,anchor:'end'},
     'CourtListener / eyecite':{dx:-10,dy:-8,anchor:'end'},
-    'JurisCheck':{dx:12,dy:6,anchor:'start'},
+    'JurisCheck':{dx:12,dy:15,anchor:'start'},
     'CiteCheck AI':{dx:-10,dy:4,anchor:'end'},
     'CiteSentinel':{dx:12,dy:0,anchor:'start'},
     'Clearbrief':{dx:10,dy:0,anchor:'start'},
@@ -152,6 +219,12 @@ const LBL = {
   }
 };
 
+const C = {
+  lime:'#c6f035', lavender:'#ADA8EC', paper:'#111516', ink:'#f6f7f2',
+  inkDim:'#cfd3c9', n500:'#9aa097', n600:'#b4b9b0', grid:'#222a2d',
+  frame:'#2c3236', divider:'#3a4347', gen:'#9aa097'
+};
+
 const VB={w:680,h:620}, P={l:84,r:60,t:60,b:104};
 const PW=VB.w-P.l-P.r, PH=VB.h-P.t-P.b;
 const X=v=>P.l+(v/10)*PW;
@@ -159,66 +232,60 @@ const Y=v=>P.t+(1-v/10)*PH;
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 
 function marker(d){
-  const cx=0,cy=0;
   if(d.g==='hero'){
-    const r=15;
-    let pts=[];
+    const r=15; let pts=[];
     for(let i=0;i<10;i++){const ang=-Math.PI/2+i*Math.PI/5;const rr=i%2?r*0.42:r;pts.push((Math.cos(ang)*rr).toFixed(1)+','+(Math.sin(ang)*rr).toFixed(1));}
-    return `<polygon points="${pts.join(' ')}" fill="#C6F035" stroke="#14181A" stroke-width="2"/>`;
+    return `<polygon points="${pts.join(' ')}" fill="${C.lime}" stroke="${C.paper}" stroke-width="2"/>`;
   }
-  if(d.g==='detUS') return `<rect x="-6.4" y="-6.4" width="12.8" height="12.8" transform="rotate(45)" fill="#5F8C00"/>`;
-  if(d.g==='detFmt') return `<rect x="-6" y="-6" width="12" height="12" transform="rotate(45)" fill="#ffffff" stroke="#9aa09c" stroke-width="1.8"/>`;
-  return `<circle r="6.6" fill="#14181A" opacity="0.62"/>`;
+  if(d.g==='detUS') return `<rect x="-6.4" y="-6.4" width="12.8" height="12.8" transform="rotate(45)" fill="${C.lavender}"/>`;
+  if(d.g==='detFmt') return `<rect x="-6" y="-6" width="12" height="12" transform="rotate(45)" fill="${C.paper}" stroke="${C.lavender}" stroke-width="1.8"/>`;
+  return `<circle r="6.6" fill="${C.gen}" opacity="0.5"/>`;
 }
 
 function renderMap(mode, axes){
   const litQuad = mode==='B'
-    ? {x0:X(5),y0:Y(10),w:X(10)-X(5),h:Y(5)-Y(10)}     // top-right
-    : {x0:X(5),y0:Y(5),w:X(10)-X(5),h:Y(0)-Y(5)};      // bottom-right
+    ? {x0:X(5),y0:Y(10),w:X(10)-X(5),h:Y(5)-Y(10)}
+    : {x0:X(5),y0:Y(5),w:X(10)-X(5),h:Y(0)-Y(5)};
   let s=`<svg viewBox="0 0 ${VB.w} ${VB.h}" role="img" aria-label="${esc(axes.title)}">`;
   // highlight quadrant
-  s+=`<rect x="${litQuad.x0}" y="${litQuad.y0}" width="${litQuad.w}" height="${litQuad.h}" fill="#C6F035" opacity="0.16"/>`;
+  s+=`<rect x="${litQuad.x0}" y="${litQuad.y0}" width="${litQuad.w}" height="${litQuad.h}" fill="${C.lime}" opacity="0.11"/>`;
   if(mode==='B'){
-    s+=`<text x="${litQuad.x0+litQuad.w-10}" y="${litQuad.y0+18}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5F8C00" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
+    s+=`<text x="${litQuad.x0+litQuad.w-10}" y="${litQuad.y0+18}" text-anchor="end" font-family="${'JetBrains Mono,monospace'}" font-size="10.5" fill="${C.lime}" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
   } else {
-    s+=`<text x="${litQuad.x0+12}" y="${litQuad.y0+litQuad.h-14}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5F8C00" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
+    s+=`<text x="${litQuad.x0+12}" y="${litQuad.y0+litQuad.h-14}" text-anchor="start" font-family="${'JetBrains Mono,monospace'}" font-size="10.5" fill="${C.lime}" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
   }
   // plot frame
-  s+=`<rect x="${P.l}" y="${P.t}" width="${PW}" height="${PH}" fill="none" stroke="#e7e9e3"/>`;
+  s+=`<rect x="${P.l}" y="${P.t}" width="${PW}" height="${PH}" fill="none" stroke="${C.frame}"/>`;
   // gridlines
   for(let i=1;i<10;i++){
-    s+=`<line x1="${X(i)}" y1="${P.t}" x2="${X(i)}" y2="${P.t+PH}" stroke="#f0f1ec"/>`;
-    s+=`<line x1="${P.l}" y1="${Y(i)}" x2="${P.l+PW}" y2="${Y(i)}" stroke="#f0f1ec"/>`;
+    s+=`<line x1="${X(i)}" y1="${P.t}" x2="${X(i)}" y2="${P.t+PH}" stroke="${C.grid}"/>`;
+    s+=`<line x1="${P.l}" y1="${Y(i)}" x2="${P.l+PW}" y2="${Y(i)}" stroke="${C.grid}"/>`;
   }
-  // quadrant divider (dashed)
-  s+=`<line x1="${X(5)}" y1="${P.t}" x2="${X(5)}" y2="${P.t+PH}" stroke="#c9cdc7" stroke-dasharray="5 4"/>`;
-  s+=`<line x1="${P.l}" y1="${Y(5)}" x2="${P.l+PW}" y2="${Y(5)}" stroke="#c9cdc7" stroke-dasharray="5 4"/>`;
+  // quadrant divider
+  s+=`<line x1="${X(5)}" y1="${P.t}" x2="${X(5)}" y2="${P.t+PH}" stroke="${C.divider}" stroke-dasharray="5 4"/>`;
+  s+=`<line x1="${P.l}" y1="${Y(5)}" x2="${P.l+PW}" y2="${Y(5)}" stroke="${C.divider}" stroke-dasharray="5 4"/>`;
   // axis labels
-  const mid=(P.l+PW/2);
-  s+=`<text x="${P.l}" y="${P.t+PH+30}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">◄ ${esc(axes.xL)}</text>`;
-  s+=`<text x="${P.l+PW}" y="${P.t+PH+30}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">${esc(axes.xR)} ►</text>`;
-  s+=`<text x="${P.l+PW/2}" y="${P.t+PH+52}" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11.5" fill="#14181A">${esc(axes.xTitle)}</text>`;
-  // y axis labels (rotated)
-  s+=`<text transform="translate(${P.l-50} ${P.t+12}) " font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">▲ ${esc(axes.yT)}</text>`;
-  s+=`<text transform="translate(${P.l-50} ${P.t+PH}) " font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">▼ ${esc(axes.yB)}</text>`;
-  s+=`<text transform="translate(${P.l-66} ${P.t+PH/2}) rotate(-90)" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11.5" fill="#14181A">${esc(axes.yTitle)}</text>`;
+  s+=`<text x="${P.l}" y="${P.t+PH+30}" text-anchor="start" font-family="${'JetBrains Mono,monospace'}" font-size="11" fill="${C.n500}">◄ ${esc(axes.xL)}</text>`;
+  s+=`<text x="${P.l+PW}" y="${P.t+PH+30}" text-anchor="end" font-family="${'JetBrains Mono,monospace'}" font-size="11" fill="${C.n500}">${esc(axes.xR)} ►</text>`;
+  s+=`<text x="${P.l+PW/2}" y="${P.t+PH+52}" text-anchor="middle" font-family="${'Space Grotesk,sans-serif'}" font-weight="600" font-size="11.5" fill="${C.ink}">${esc(axes.xTitle)}</text>`;
+  s+=`<text transform="translate(${P.l-50} ${P.t+12})" font-family="${'JetBrains Mono,monospace'}" font-size="11" fill="${C.n500}">▲ ${esc(axes.yT)}</text>`;
+  s+=`<text transform="translate(${P.l-50} ${P.t+PH})" font-family="${'JetBrains Mono,monospace'}" font-size="11" fill="${C.n500}">▼ ${esc(axes.yB)}</text>`;
+  s+=`<text transform="translate(${P.l-66} ${P.t+PH/2}) rotate(-90)" text-anchor="middle" font-family="${'Space Grotesk,sans-serif'}" font-weight="600" font-size="11.5" fill="${C.ink}">${esc(axes.yTitle)}</text>`;
 
-  // points + labels
   DATA.forEach(d=>{
     const pt=d[mode==='B'?'b':'a'];
     const px=X(pt.x), py=Y(pt.y);
     const lo=LBL[mode][d.n]||{dx:10,dy:4,anchor:'start'};
     const isHero=d.g==='hero';
-    // good-law dashed halo
-    if(isHero){ s+=`<circle cx="${px}" cy="${py}" r="22" fill="none" stroke="#5F8C00" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>`; }
+    if(isHero){ s+=`<circle cx="${px}" cy="${py}" r="22" fill="none" stroke="${C.lime}" stroke-width="1.8" stroke-dasharray="3 2" opacity="0.85"/>`; }
     s+=`<g transform="translate(${px} ${py})">${marker(d)}</g>`;
-    // label
     const lx=px+lo.dx, ly=py+lo.dy;
-    const weight=isHero?'600':'500';
-    const fill=isHero?'#14181A':'#14181A';
-    const size=isHero?'13':'11';
-    s+=`<text x="${lx}" y="${ly}" text-anchor="${lo.anchor}" font-family="${isHero?'Inter,sans-serif':'JetBrains Mono,monospace'}" font-weight="${weight}" font-size="${size}" fill="${fill}">${esc(d.n)}</text>`;
-    if(d.note){ s+=`<text x="${lx}" y="${ly+12}" text-anchor="${lo.anchor}" font-family="JetBrains Mono,monospace" font-size="9.5" fill="${isHero?'#5F8C00':'#9aa09c'}">${esc(d.note)}</text>`; }
+    const fam = isHero?'Inter,sans-serif':'JetBrains Mono,monospace';
+    const weight = isHero?'600':'500';
+    const fill = isHero?C.ink:C.n600;
+    const size = isHero?'13':'11';
+    s+=`<text x="${lx}" y="${ly}" text-anchor="${lo.anchor}" font-family="${fam}" font-weight="${weight}" font-size="${size}" fill="${fill}">${esc(d.n)}</text>`;
+    if(d.note){ s+=`<text x="${lx}" y="${ly+12}" text-anchor="${lo.anchor}" font-family="${'JetBrains Mono,monospace'}" font-size="9.5" fill="${isHero?C.lime:C.n500}">${esc(d.note)}</text>`; }
   });
   s+=`</svg>`;
   return s;
@@ -232,7 +299,7 @@ document.getElementById('mapB').innerHTML = renderMap('B',{
 document.getElementById('mapA').innerHTML = renderMap('A',{
   title:'Mapa A', quad:'determinista + point-tool',
   xL:'Generativo / LLM', xR:'Determinista / sin-LLM', xTitle:'Pureza del veredicto',
-  yT:'Plataforma amplia', yB:'Point-tool de citas', yTitle:'Amplitud del producto'
+  yT:'Plataforma', yB:'Point-tool de citas', yTitle:'Amplitud del producto'
 });
 </script>
 </body>
