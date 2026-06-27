@@ -67,7 +67,7 @@ def _call_infermatic(api_key: str, base_url: str, model: str, prompt: str, citat
             },
             json={
                 "model": model,
-                "max_tokens": 800,
+                "max_tokens": 150,
                 "messages": [
                     {
                         "role": "system",
@@ -175,10 +175,16 @@ def _build_prompt(
         )
 
     if verdict == "MISAPPLIED":
+        cited_part = (
+            f"claiming it stands for: '{proposition_cited}'"
+            if proposition_cited else "but the way it is used in the document is incorrect"
+        )
+        actual_part = (
+            f" The case actually establishes: '{proposition_actual}'."
+            if proposition_actual else ""
+        )
         return (
-            f"A lawyer cited '{citation}' in a High Court skeleton argument "
-            f"claiming it stands for: '{proposition_cited}'. "
-            f"The case actually establishes: '{proposition_actual}'. "
+            f"A lawyer cited '{citation}' in a High Court skeleton argument {cited_part}.{actual_part} "
             "Write one sentence (max 50 words) explaining to the filing partner "
             "why this is a misapplication and what the risk is. "
             "Be precise about the legal error. Start with 'This case'."
