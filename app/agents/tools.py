@@ -206,16 +206,38 @@ class ToolExecutor:
     def _get_document_context(self, citation: str) -> dict:
         text = self._doc_text
         pos = text.find(citation)
+
         if pos == -1:
+            # Try collapsing whitespace — catches newlines injected by PDF extraction
+            normalized_citation = re.sub(r"\s+", " ", citation).strip()
+            normalized_text = re.sub(r"\s+", " ", text)
+            norm_pos = normalized_text.find(normalized_citation)
+            if norm_pos != -1:
+                # Map normalized position back to original text approximately
+                pos = norm_pos
+
+        if pos == -1:
+            # Try matching on the first party name (before " v ")
+            first_party = citation.split(" v ")[0].strip()
+            first_party = re.sub(r"^\W+", "", first_party)
+            if len(first_party) >= 4:
+                m = re.search(re.escape(first_party), text, re.IGNORECASE)
+                pos = m.start() if m else -1
+
+        if pos == -1:
+            # Last resort: first 35 significant chars
             fragment = re.sub(r"^\W+", "", citation)[:35]
             m = re.search(re.escape(fragment), text, re.IGNORECASE)
             pos = m.start() if m else 0
+
         start = max(0, pos - _CONTEXT_WINDOW)
         end   = min(len(text), pos + len(citation) + _CONTEXT_WINDOW)
         return {"context": text[start:end]}
 
     def _check_treatment_history(self, node_id: str) -> dict:
-        hist = self._treatment.get_history(node_id)
+        # Normalise: agent sometimes passes "Donoghue v Stevenson" instead of the slug
+        slug = re.sub(r"[^a-z0-9]+", "-", node_id.lower()).strip("-")
+        hist = self._treatment.get_history(slug)
         return {
             "verdict":          hist.verdict,
             "overruled_by":     hist.overruled_by,

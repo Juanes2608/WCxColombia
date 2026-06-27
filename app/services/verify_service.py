@@ -242,7 +242,9 @@ class VerifyService:
 
 def _nemotron_enabled() -> bool:
     from app.config import get_settings
-    return bool(get_settings().openrouter_api_key)
+    s = get_settings()
+    # Agent runs if either provider is configured — Infermatic is a valid fallback
+    return bool(s.openrouter_api_key or s.infermatic_api_key)
 
 
 def _run_agent(

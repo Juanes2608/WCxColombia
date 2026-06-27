@@ -94,7 +94,7 @@ def _call_infermatic(api_key: str, base_url: str, model: str, prompt: str, citat
 
 
 _OPENERS = ("This citation", "This case", "Verified:")
-_MIN_ANSWER_LEN = 40  # chars — filters out opener-in-reasoning like "Start with 'This case'."
+_MIN_ANSWER_LEN = 20  # chars — filters bare openers; real sentences are longer
 
 
 def _strip_thinking(text: str) -> str:
