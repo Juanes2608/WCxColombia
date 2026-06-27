@@ -161,6 +161,28 @@ export interface VerifyResult {
   audit_trail_hash: string; // SHA-256 hex, 64 chars
 }
 
+export interface PreviewPassage {
+  para_no: number;
+  text: string;
+  relevance_score: number;
+  highlight_start: number;
+  highlight_end: number;
+  highlight_text: string;
+  source: "local_store" | "neo4j";
+}
+
+export interface PreviewResult {
+  node_id: string;
+  citation: string;
+  short_name: string;
+  status: string;
+  bailii_url: string | null;
+  preview_mode: "full" | "proposition_only";
+  claim: string;
+  proposition: string;
+  passages: PreviewPassage[];
+}
+
 export interface GraphData {
   nodes: Array<{ id: string; label: string; status: string }>;
   edges: Array<{ source: string; target: string; type: string }>;

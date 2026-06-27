@@ -3,7 +3,7 @@
 // The base URL comes from VITE_API_URL (the Cloudflare tunnel / deployed backend).
 // The response shapes in src/lib/types.ts are the contract and must match the backend.
 
-import type { HealthStatus, VerifyResult, ProofPanel, DocumentView } from "./types";
+import type { HealthStatus, VerifyResult, ProofPanel, DocumentView, PreviewResult } from "./types";
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const ACCEPTED_EXTENSIONS = [".pdf", ".txt"] as const;
@@ -122,6 +122,24 @@ export async function getDocument(matterId: string): Promise<DocumentView> {
  * Retrieve a previously computed report by matter_id (GET /api/report/{matter_id}).
  * Backed by an in-memory store on the server (last 100 reports, cleared on restart).
  */
+export async function getPreview(
+  nodeId: string,
+  claim: string,
+  k = 3,
+): Promise<PreviewResult> {
+  const base = requireApiBase();
+  const params = new URLSearchParams({ claim: claim.slice(0, 500), k: String(k) });
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/preview/${encodeURIComponent(nodeId)}?${params}`);
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (res.status === 404) throw new ApiError(404, "Case not found in preview corpus.");
+  if (!res.ok) throw new ApiError(res.status, "Could not load case preview.");
+  return (await res.json()) as PreviewResult;
+}
+
 export async function getReport(matterId: string): Promise<VerifyResult> {
   const base = requireApiBase();
   let res: Response;

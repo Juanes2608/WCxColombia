@@ -15,6 +15,8 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { CasePreviewPanel } from "./CasePreviewPanel";
+import type { PreviewRequest } from "./CasePreviewPanel";
 import type {
   AmendmentSuggestion,
   AuthenticityVerdict,
@@ -32,6 +34,15 @@ const V = {
   MISAPPLIED: { sym: "▲", label: "Misapplied", text: "text-warn", bg: "bg-warn-bg", border: "border-warn-bd", pill: "bg-warn-bg text-warn",  dot: "bg-warn" },
   FABRICATED: { sym: "✕", label: "Fabricated", text: "text-bad",  bg: "bg-bad-bg",  border: "border-bad-bd",  pill: "bg-bad-bg text-bad",   dot: "bg-bad"  },
 } as const;
+
+// Derives a corpus node_id from an amendment's short_name (e.g. "Murphy v Brentwood DC" → "murphy-v-brentwood-dc")
+function toNodeId(shortName: string): string {
+  return shortName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
 
 // ─── Two-pass document parser ─────────────────────────────────────────────────
 //
@@ -469,12 +480,13 @@ function Gutter({ scanning }: { scanning: boolean }) {
 // ─── Right panel ──────────────────────────────────────────────────────────────
 
 function RightPanel({
-  results, idx, onClose, onNav,
+  results, idx, onClose, onNav, onPreview,
 }: {
   results: CitationResult[];
   idx: number;
   onClose: () => void;
   onNav: (i: number) => void;
+  onPreview: (req: PreviewRequest) => void;
 }) {
   const citation = results[idx];
   if (!citation) return null;
@@ -576,6 +588,22 @@ function RightPanel({
           </Accordion>
         )}
 
+        {/* 1b. Read judgment button — non-FABRICATED only */}
+        {citation.layer1.verdict !== "FABRICATED" && cs?.node_id && (
+          <button
+            type="button"
+            onClick={() => onPreview({
+              nodeId: cs.node_id!,
+              claim: ha?.brief_pointer?.sentence ?? citation.document_context ?? citation.raw_text,
+              label: citation.raw_text,
+            })}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[12.5px] font-semibold text-ink transition-colors hover:bg-n100"
+          >
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-n500" aria-hidden="true" />
+            Read judgment passages
+          </button>
+        )}
+
         {/* 2. Exact sentence from submission where this citation appears */}
         {submissionSentence && (
           <Accordion
@@ -641,6 +669,18 @@ function RightPanel({
                   {a.rationale && (
                     <p className="text-[11.5px] text-n500 italic">{a.rationale}</p>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => onPreview({
+                      nodeId: toNodeId(a.short_name),
+                      claim: a.proposition || a.citation,
+                      label: a.short_name,
+                    })}
+                    className="flex items-center gap-1.5 pt-0.5 font-mono text-[10px] text-action hover:text-ink transition-colors"
+                  >
+                    <BookOpen className="h-3 w-3" aria-hidden="true" />
+                    Read judgment
+                  </button>
                 </div>
               ))}
             </div>
@@ -948,6 +988,7 @@ export function VerificationSplitView({
   const [scanning, setScanning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [preview, setPreview] = useState<PreviewRequest | null>(null);
 
   useEffect(() => {
     getDocument(matterId).then(setDoc).catch(() => {});
@@ -955,11 +996,15 @@ export function VerificationSplitView({
 
   const select = useCallback((idx: number) => {
     setSelectedIdx(idx);
+    setPreview(null);   // clear any open preview when switching citations
     setScanning(true);
     setTimeout(() => setScanning(false), 750);
   }, []);
 
-  const close = useCallback(() => setSelectedIdx(null), []);
+  const close = useCallback(() => {
+    setSelectedIdx(null);
+    setPreview(null);
+  }, []);
 
   function copyHash() {
     navigator.clipboard?.writeText(result.audit_trail_hash ?? "").then(() => {
@@ -1000,7 +1045,21 @@ export function VerificationSplitView({
           <Gutter scanning={scanning} />
           <div className="flex-1 overflow-hidden">
             <AnimatePresence mode="wait">
-              {selectedIdx !== null ? (
+              {selectedIdx !== null && preview ? (
+                <motion.div
+                  key={`preview-${preview.nodeId}`}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18 }}
+                  className="h-full"
+                >
+                  <CasePreviewPanel
+                    {...preview}
+                    onBack={() => setPreview(null)}
+                  />
+                </motion.div>
+              ) : selectedIdx !== null ? (
                 <motion.div
                   key={`detail-${selectedIdx}`}
                   initial={{ opacity: 0, y: 6 }}
@@ -1014,6 +1073,7 @@ export function VerificationSplitView({
                     idx={selectedIdx}
                     onClose={close}
                     onNav={select}
+                    onPreview={setPreview}
                   />
                 </motion.div>
               ) : (
