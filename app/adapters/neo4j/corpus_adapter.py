@@ -54,14 +54,51 @@ class Neo4jCorpusAdapter(ICorpusRepository):
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
+    def list_all(self) -> list[dict]:
+        """All verified cases as [{citation, short_name, proposition}] for find_supporting_authority."""
+        driver = get_driver()
+        if driver is None:
+            return []
+        try:
+            with driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (c:Case)
+                    WHERE c.verified = true
+                    OPTIONAL MATCH (c)-[:ESTABLISHES]->(p:Proposition)
+                    WITH c, collect(p.text) AS props
+                    RETURN c.citation    AS citation,
+                           c.shortName  AS short_name,
+                           CASE WHEN size(props) > 0 THEN props[0] ELSE '' END AS proposition
+                    """
+                )
+                return [
+                    {
+                        "citation":   rec["citation"],
+                        "short_name": rec["short_name"],
+                        "proposition": rec["proposition"],
+                    }
+                    for rec in result
+                ]
+        except neo4j_exc.ServiceUnavailable:
+            logger.warning("Neo4j unavailable — list_all degraded to []")
+            return []
+        except Exception as exc:
+            logger.warning("Neo4j list_all failed: %s", exc)
+            return []
+
     def _fulltext_lookup(self, session, fragment: str) -> str | None:
-        """Lucene full-text search — requires caseSearchIndex to exist."""
+        """Lucene full-text search — requires caseSearchIndex to exist.
+
+        Score threshold of 3.0 empirically separates genuine matches (score >13)
+        from accidental token overlaps with fabricated citations (score <2).
+        """
         try:
             result = session.run(
                 """
                 CALL db.index.fulltext.queryNodes("caseSearchIndex", $fragment)
                 YIELD node AS c, score
-                WHERE c.verified = true
+                WHERE c.verified = true AND score > 3.0
                 RETURN c.nodeId AS nodeId, score
                 ORDER BY score DESC LIMIT 1
                 """,
