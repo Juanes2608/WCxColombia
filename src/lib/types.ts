@@ -75,6 +75,7 @@ export interface AmendmentSuggestion {
   short_name: string;
   proposition: string;
   rationale: string;
+  node_id?: string | null; // corpus node for previewing the suggested judgment
 }
 
 export interface HoldingAnalysis {
@@ -125,6 +126,34 @@ export interface ProofPanel {
   llm_explanation: string | null;
   static_explanation: string;
   transparency: Transparency;
+}
+
+// ─── Case preview (GET /api/preview/{node_id}) ───────────────────────────────
+// Lets counsel read the source judgment (or its summary) before adopting an
+// amendment. preview_mode drives which body renders: an embedded PDF, a
+// proposition-only summary, or a not-found notice.
+
+export interface PreviewPassage {
+  para_no: number;
+  text: string;
+  relevance_score: number;
+  highlight_start: number;
+  highlight_end: number;
+  highlight_text: string;
+  source: "local_store" | "neo4j";
+}
+
+export interface PreviewResult {
+  node_id: string;
+  citation: string;
+  short_name: string;
+  status: string;
+  bailii_url: string | null;
+  preview_mode: "full" | "proposition_only" | "not_found";
+  claim: string;
+  full_text?: string | null;
+  proposition: string;
+  passages: PreviewPassage[];
 }
 
 export interface DocumentCitation {

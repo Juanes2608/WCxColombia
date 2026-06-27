@@ -3,13 +3,14 @@
 // The base URL comes from VITE_API_URL (the Cloudflare tunnel / deployed backend).
 // The response shapes in src/lib/types.ts are the contract and must match the backend.
 
-import type { DocumentView, HealthStatus, ProofPanel, VerifyResult } from "./types";
+import type { DocumentView, HealthStatus, PreviewResult, ProofPanel, VerifyResult } from "./types";
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const ACCEPTED_EXTENSIONS = [".pdf", ".txt"] as const;
 
 // Strip trailing slashes so `${API_BASE}/api/verify` never doubles up.
-const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+// Exported so the case-preview panel can build the raw PDF blob URL directly.
+export const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
@@ -124,6 +125,32 @@ export async function getDocument(matterId: string): Promise<DocumentView> {
   if (res.status === 404) throw new ApiError(404, "Document not found.");
   if (!res.ok) throw new ApiError(res.status, "Could not load document.");
   return (await res.json()) as DocumentView;
+}
+
+/**
+ * Source preview for a single authority (GET /api/preview/{node_id}). Returns the
+ * judgment in one of three modes — an embedded PDF ("full"), a proposition-only
+ * summary, or "not_found" — so counsel can read the source before adopting an
+ * amendment. `claim` is the proposition we want passages for (capped server-side).
+ */
+export async function getPreview(
+  nodeId: string,
+  claim: string,
+  k = 3,
+  full = false,
+): Promise<PreviewResult> {
+  const base = requireApiBase();
+  const params = new URLSearchParams({ claim: claim.slice(0, 500), k: String(k) });
+  if (full) params.set("full", "true");
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/preview/${encodeURIComponent(nodeId)}?${params}`);
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (res.status === 404) throw new ApiError(404, "Case not found in the preview corpus.");
+  if (!res.ok) throw new ApiError(res.status, "Could not load the case preview.");
+  return (await res.json()) as PreviewResult;
 }
 
 /**
