@@ -336,7 +336,8 @@ def run_document(citations: list[Citation], judge: ContextJudge | None = None,
     judge = judge or get_judge()
     try:
         corpus = graph._run(
-            "MATCH (c:Case) RETURN c.id AS id, c.name AS name, c.citation AS citation")
+            "MATCH (c:Case) WHERE coalesce(c.verified, true) = true "
+            "RETURN c.id AS id, c.name AS name, c.citation AS citation")
         passage_ids = retriever.store.loaded_case_ids()
         misapply_layer = load_misapply_layer(graph, retriever.embedder)
         return [verify_citation_agents(graph, retriever, judge, c, corpus, passage_ids,

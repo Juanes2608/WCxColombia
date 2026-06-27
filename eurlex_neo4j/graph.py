@@ -93,7 +93,8 @@ class CitationGraph:
                   c.jurisdiction = coalesce(row.jurisdiction, c.jurisdiction),
                   c.summary      = coalesce(row.summary, c.summary),
                   c.source       = coalesce(row.source, c.source),
-                  c.url          = coalesce(row.url, c.url)
+                  c.url          = coalesce(row.url, c.url),
+                  c.verified     = true
             """,
             cases=cases,
         )
