@@ -26,6 +26,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   const blobRef = useRef<string | null>(null);
 
   // Load the preview metadata for this authority.
@@ -52,13 +53,20 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
     };
   }, [nodeId, claim]);
 
-  // Fetch the PDF as a blob so the browser renders it inline.
+  // Fetch the PDF as a blob so the browser renders it inline. The backend can
+  // report preview_mode "full" yet still 404 the actual PDF (corpus gap); guard
+  // against blobbing that JSON error and rendering it as if it were the document.
   useEffect(() => {
     if (preview?.preview_mode !== "full") return;
     let cancelled = false;
     setPdfLoading(true);
+    setPdfError(false);
     fetch(`${API_BASE}/api/preview/${encodeURIComponent(nodeId)}/pdf`)
-      .then((r) => r.blob())
+      .then(async (r) => {
+        const type = r.headers.get("content-type") ?? "";
+        if (!r.ok || !type.includes("pdf")) throw new Error("pdf-unavailable");
+        return r.blob();
+      })
       .then((blob) => {
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
@@ -67,7 +75,10 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
         setPdfLoading(false);
       })
       .catch(() => {
-        if (!cancelled) setPdfLoading(false);
+        if (!cancelled) {
+          setPdfError(true);
+          setPdfLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -178,9 +189,17 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
         </div>
       )}
 
-      {/* full — embedded PDF via blob URL */}
+      {/* full — embedded PDF via blob URL (with graceful fallback if the PDF 404s) */}
       {!loading && !error && preview?.preview_mode === "full" &&
-        (pdfLoading || !blobUrl ? (
+        (pdfError ? (
+          <div className="m-5 flex items-start gap-2.5 rounded-xl border border-n200 bg-paper px-4 py-3">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-n400" aria-hidden="true" />
+            <p className="text-[13px] text-n600">
+              The PDF for this judgment isn&rsquo;t available in the preview corpus yet. Use
+              &ldquo;Open in new tab&rdquo; above{preview.bailii_url ? ", or view it on BAILII." : "."}
+            </p>
+          </div>
+        ) : pdfLoading || !blobUrl ? (
           <div className="flex flex-1 items-center justify-center gap-2.5 text-n500">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             <span className="text-[13px]">Loading PDF…</span>
