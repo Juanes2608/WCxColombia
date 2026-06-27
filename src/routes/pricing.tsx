@@ -16,12 +16,16 @@ import {
   TIERS_LIST,
   TIERS,
   computeBuyerEconomics,
+  computeSellerEconomics,
   buyerScenarios,
+  sellerScenarios,
   formatGBP,
   CONSTANTS,
   type BuyerInputs,
+  type SellerInputs,
   type TierId,
 } from "@/lib/pricing";
+import { ChatPanel } from "@/components/citationguard/ChatPanel";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -227,12 +231,32 @@ function ReturnCalculator({
     [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
   );
 
+  const sellerInputs: SellerInputs = {
+    tierId: planId,
+    seats: planId === "enterprise" ? seats : 1,
+    scansPerSeatMonth: filings,
+    billingCycle: annual ? "annual" : "monthly",
+  };
+
+  const sellerEco = useMemo(
+    () => computeSellerEconomics(sellerInputs, tier),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [planId, seats, filings, annual],
+  );
+
+  const sellerScen = useMemo(
+    () => sellerScenarios(sellerInputs, tier),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [planId, seats, filings, annual],
+  );
+
   const displayedRoi =
     eco.buyerRoiPct !== null && eco.buyerRoiPct >= 0
       ? `${Math.round(eco.buyerRoiPct * 100)}%`
       : "—";
 
   return (
+    <div>
     <div className="grid gap-8 lg:grid-cols-2">
       {/* Inputs */}
       <div className="rounded-2xl border border-n300 bg-surface p-7">
@@ -407,6 +431,17 @@ function ReturnCalculator({
           </a>
         </div>
       </div>
+    </div>
+
+    <div className="mt-8">
+      <ChatPanel
+        buyer={eco}
+        seller={sellerEco}
+        buyerScenarios={scen}
+        sellerScenarios={sellerScen}
+        tier={planId}
+      />
+    </div>
     </div>
   );
 }
