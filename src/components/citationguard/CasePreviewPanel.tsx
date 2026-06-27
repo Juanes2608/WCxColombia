@@ -1,33 +1,200 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, ExternalLink, AlertTriangle, Loader2 } from "lucide-react";
-import type { PreviewResult } from "@/lib/types";
+import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, X, FileText } from "lucide-react";
+import type { PreviewPassage, PreviewResult } from "@/lib/types";
 import { getPreview, ApiError } from "@/lib/api-client";
 
 export interface PreviewRequest {
   nodeId: string;
   claim: string;
-  label: string; // citation raw_text or short_name for the back button
+  label: string;
 }
 
 interface Props extends PreviewRequest {
   onBack: () => void;
 }
 
-// ─── Highlighted passage text ────────────────────────────────────────────────
+// ─── Highlighted text ─────────────────────────────────────────────────────────
 
-function HighlightedText({
-  text, start, end,
-}: { text: string; start: number; end: number }) {
-  const hasHighlight = start < end && end <= text.length && start >= 0;
-  if (!hasHighlight) return <span>{text}</span>;
+function HighlightedText({ text, start, end }: { text: string; start: number; end: number }) {
+  const ok = start >= 0 && start < end && end <= text.length;
+  if (!ok) return <>{text}</>;
   return (
     <>
       {text.slice(0, start)}
-      <mark className="rounded-[3px] bg-action/20 px-0.5 font-medium text-ink not-italic">
+      <mark className="rounded-[3px] bg-action/25 px-0.5 font-semibold text-ink not-italic">
         {text.slice(start, end)}
       </mark>
       {text.slice(end)}
     </>
+  );
+}
+
+// ─── Full passage modal ───────────────────────────────────────────────────────
+
+function PassageModal({
+  passage,
+  shortName,
+  citation,
+  onClose,
+}: {
+  passage: PreviewPassage;
+  shortName: string;
+  citation: string;
+  onClose: () => void;
+}) {
+  const pct = Math.round(passage.relevance_score * 100);
+
+  return (
+    /* Backdrop */
+    <div
+      className="absolute inset-0 z-30 flex items-end bg-ink/40 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      {/* Sheet — slides up from bottom */}
+      <div
+        className="relative w-full max-h-[82%] overflow-hidden rounded-t-2xl bg-paper shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-n300" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-start gap-3 border-b border-n200 px-5 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <FileText className="h-3.5 w-3.5 shrink-0 text-n400" aria-hidden="true" />
+              <p className="truncate font-display text-[13.5px] font-semibold text-ink">
+                {shortName}
+              </p>
+            </div>
+            <p className="mt-0.5 truncate font-mono text-[9.5px] text-n400">{citation}</p>
+          </div>
+
+          {/* Confidence chip */}
+          <div className="shrink-0 text-right">
+            <p className={`font-mono text-[20px] font-bold leading-none ${
+              pct >= 70 ? "text-good" : pct >= 45 ? "text-warn" : "text-n500"
+            }`}>
+              {pct}%
+            </p>
+            <p className="mt-0.5 font-mono text-[8px] uppercase tracking-widest text-n400">
+              relevance
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-0.5 shrink-0 rounded-lg p-1.5 text-n400 hover:bg-n100 hover:text-ink"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Para label */}
+        <div className="flex items-center gap-2 px-5 pt-3 pb-1">
+          <span className="font-mono text-[10px] text-n400">§ {passage.para_no}</span>
+          <span className="h-px flex-1 bg-n200" />
+          <span className="font-mono text-[9px] text-n400 capitalize">
+            {passage.source.replace("_", " ")}
+          </span>
+        </div>
+
+        {/* Full text */}
+        <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: "55vh" }}>
+          <p className="text-[13.5px] leading-[1.85] text-n700">
+            <HighlightedText
+              text={passage.text}
+              start={passage.highlight_start}
+              end={passage.highlight_end}
+            />
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Compact passage card ─────────────────────────────────────────────────────
+
+function PassageCard({
+  passage,
+  onClick,
+}: {
+  passage: PreviewPassage;
+  onClick: () => void;
+}) {
+  const pct = Math.round(passage.relevance_score * 100);
+
+  // Show the highlighted snippet if available, otherwise first 120 chars
+  const hasHighlight = passage.highlight_start >= 0
+    && passage.highlight_start < passage.highlight_end
+    && passage.highlight_end <= passage.text.length;
+
+  const snippet = hasHighlight
+    ? passage.text.slice(
+        Math.max(0, passage.highlight_start - 30),
+        Math.min(passage.text.length, passage.highlight_end + 80),
+      )
+    : passage.text.slice(0, 130);
+
+  const snippetHighlightStart = hasHighlight
+    ? Math.min(30, passage.highlight_start)
+    : -1;
+  const snippetHighlightEnd = hasHighlight
+    ? snippetHighlightStart + (passage.highlight_end - passage.highlight_start)
+    : -1;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full rounded-xl border border-n200 bg-paper text-left transition-all hover:border-n300 hover:shadow-sm"
+    >
+      {/* Card header */}
+      <div className="flex items-center justify-between border-b border-n200 px-4 py-2">
+        <span className="font-mono text-[10.5px] text-n500">§ {passage.para_no}</span>
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-n200">
+            <div
+              className={`h-full rounded-full transition-all ${
+                pct >= 70 ? "bg-good" : pct >= 45 ? "bg-warn" : "bg-n400"
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className={`font-mono text-[10px] font-semibold ${
+            pct >= 70 ? "text-good" : pct >= 45 ? "text-warn" : "text-n500"
+          }`}>
+            {pct}%
+          </span>
+        </div>
+      </div>
+
+      {/* Snippet */}
+      <div className="px-4 py-3">
+        <p className="line-clamp-2 text-[12px] leading-[1.65] text-n600">
+          {snippetHighlightStart >= 0 ? (
+            <HighlightedText
+              text={snippet}
+              start={snippetHighlightStart}
+              end={snippetHighlightEnd}
+            />
+          ) : (
+            snippet
+          )}
+          {snippet.length < passage.text.length && (
+            <span className="text-n400"> …</span>
+          )}
+        </p>
+        <p className="mt-1.5 font-mono text-[9.5px] text-action group-hover:underline">
+          Click to read full passage
+        </p>
+      </div>
+    </button>
   );
 }
 
@@ -37,16 +204,16 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openPassage, setOpenPassage] = useState<PreviewPassage | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setPreview(null);
     setError(null);
+    setOpenPassage(null);
     getPreview(nodeId, claim)
-      .then(r => {
-        if (!cancelled) { setPreview(r); setLoading(false); }
-      })
+      .then(r => { if (!cancelled) { setPreview(r); setLoading(false); } })
       .catch(e => {
         if (!cancelled) {
           setError(e instanceof ApiError ? e.message : "Error loading preview.");
@@ -57,7 +224,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
   }, [nodeId, claim]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface">
+    <div className="relative flex h-full flex-col overflow-hidden bg-surface">
 
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-n200 px-5 py-3.5">
@@ -75,7 +242,7 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
             <h2 className="font-display text-[14px] font-semibold leading-snug text-ink">
               {preview.short_name}
             </h2>
-            <p className="mt-0.5 font-mono text-[10px] text-n400">{preview.citation}</p>
+            <p className="mt-0.5 font-mono text-[9.5px] text-n400">{preview.citation}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <span className={`font-mono text-[10px] font-bold ${
                 preview.status === "GOOD_LAW"  ? "text-good" :
@@ -84,20 +251,16 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
                 {preview.status.replace(/_/g, " ")}
               </span>
               {preview.bailii_url && (
-                <a
-                  href={preview.bailii_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-[10px] text-action hover:underline"
-                >
+                <a href={preview.bailii_url} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-[10px] text-action hover:underline">
                   BAILII <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
                 </a>
               )}
-              <span className="ml-auto font-mono text-[9px] text-n400">
-                {preview.preview_mode === "full"
-                  ? `${preview.passages.length} passage${preview.passages.length !== 1 ? "s" : ""}`
-                  : "summary only"}
-              </span>
+              {preview.preview_mode === "full" && preview.passages.length > 0 && (
+                <span className="ml-auto font-mono text-[9px] text-n400">
+                  {preview.passages.length} passage{preview.passages.length !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           </>
         ) : (
@@ -108,22 +271,20 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
       {/* ── Body ── */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
 
-        {/* Loading */}
         {loading && (
-          <div className="flex items-center gap-2.5 py-4 text-n500">
+          <div className="flex items-center gap-2.5 py-6 text-n500">
             <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />
             <span className="text-[13px]">Loading judgment passages…</span>
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="rounded-xl border border-bad-bd bg-bad-bg px-4 py-3">
             <p className="text-[13px] text-bad">{error}</p>
           </div>
         )}
 
-        {/* Proposition-only mode */}
+        {/* Proposition-only */}
         {preview?.preview_mode === "proposition_only" && (
           <>
             <div className="flex items-start gap-2.5 rounded-xl border border-warn-bd bg-warn-bg px-4 py-3">
@@ -132,19 +293,13 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
                 Only the case summary is available — the original PDF is scanned and full-text extraction is unavailable.
               </p>
             </div>
-
             <div className="rounded-xl border border-n200 bg-paper px-4 py-3">
               <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Proposition</p>
               <p className="text-[13px] leading-[1.75] text-ink">{preview.proposition}</p>
             </div>
-
             {preview.bailii_url && (
-              <a
-                href={preview.bailii_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink hover:bg-n100 transition-colors"
-              >
+              <a href={preview.bailii_url} target="_blank" rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink hover:bg-n100 transition-colors">
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 Read on BAILII
               </a>
@@ -152,65 +307,40 @@ export function CasePreviewPanel({ nodeId, claim, label, onBack }: Props) {
           </>
         )}
 
-        {/* Full mode */}
+        {/* Full mode — compact clickable cards */}
         {preview?.preview_mode === "full" && (
           <>
-            {/* Claim context */}
+            {/* Claim used */}
             <div className="rounded-xl border border-n200 bg-paper px-4 py-3">
               <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.15em] text-n400">Claim</p>
               <p className="text-[12px] leading-[1.65] text-n600 italic">"{preview.claim}"</p>
             </div>
 
-            {/* Passages */}
-            {preview.passages.map((p, i) => {
-              const pct = Math.round(p.relevance_score * 100);
-              return (
-                <div key={i} className="overflow-hidden rounded-xl border border-n200 bg-paper">
-                  {/* Passage meta bar */}
-                  <div className="flex items-center justify-between border-b border-n200 px-4 py-2">
-                    <span className="font-mono text-[10px] text-n500">§ {p.para_no}</span>
-                    <div className="flex items-center gap-2">
-                      {/* Relevance bar */}
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-n200">
-                        <div
-                          className="h-full rounded-full bg-action transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="font-mono text-[9.5px] text-n500">{pct}%</span>
-                    </div>
-                  </div>
+            {/* Passage cards */}
+            {preview.passages.map((p, i) => (
+              <PassageCard key={i} passage={p} onClick={() => setOpenPassage(p)} />
+            ))}
 
-                  {/* Passage text */}
-                  <div className="max-h-56 overflow-y-auto px-4 py-3">
-                    <p className="text-[12.5px] leading-[1.8] text-n700">
-                      <HighlightedText
-                        text={p.text}
-                        start={p.highlight_start}
-                        end={p.highlight_end}
-                      />
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* BAILII link at bottom */}
             {preview.bailii_url && (
-              <a
-                href={preview.bailii_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink hover:bg-n100 transition-colors"
-              >
+              <a href={preview.bailii_url} target="_blank" rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[13px] font-semibold text-ink hover:bg-n100 transition-colors">
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 Read full judgment on BAILII
               </a>
             )}
           </>
         )}
-
       </div>
+
+      {/* ── Passage modal (sheet from bottom, inside panel) ── */}
+      {openPassage && preview && (
+        <PassageModal
+          passage={openPassage}
+          shortName={preview.short_name}
+          citation={preview.citation}
+          onClose={() => setOpenPassage(null)}
+        />
+      )}
     </div>
   );
 }
