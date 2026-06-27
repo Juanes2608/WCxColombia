@@ -45,6 +45,7 @@ describe("seller — edge cases", () => {
     const zero = computeSellerEconomics({ ...wc, seats: 0 }, TIERS.enterprise);
     expect(zero.revenueMonthly).toBe(0);
     expect(zero.grossMarginPct).toBe(0);
+    expect(zero.productGrossMarginPct).toBe(0);
   });
   it("usage over capacity is clamped (junior cap 20)", () => {
     const j = computeSellerEconomics(
@@ -61,6 +62,7 @@ describe("seller — edge cases", () => {
     });
     expect(noChurn.ltv).toBe(Infinity);
     expect(noChurn.uncertainty.join(" ")).toMatch(/churn/i);
+    expect(noChurn.meetsLtvCacTarget).toBe(true);
   });
 });
 

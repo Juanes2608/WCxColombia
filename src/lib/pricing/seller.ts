@@ -1,9 +1,12 @@
 import { CONSTANTS, type Constants } from "./constants";
 import type { BillingCycle, DominantCost, SellerEconomics, SellerInputs, Tier } from "./types";
 
+const LTV_CAC_THRESHOLD = 3; // healthy LTV/CAC target; used by meetsLtvCacTarget AND minViableSeats
+
 export function effectiveLicenseMonthly(tier: Tier, seats: number, cycle: BillingCycle): number {
   if (tier.pricePerSeatMonthly) {
-    return seats * tier.pricePerSeatMonthly.value; // enterprise: annual factor = 1
+    const factor = cycle === "annual" ? tier.annualFactor.value : 1;
+    return seats * tier.pricePerSeatMonthly.value * factor; // enterprise annualFactor = 1
   }
   if (tier.priceMonthly) {
     const factor = cycle === "annual" ? tier.annualFactor.value : 1;
@@ -63,9 +66,10 @@ export function computeSellerEconomics(
 
   const ltvCacRatio =
     ltv === null || cac <= 0 ? null : ltv === Infinity ? Infinity : ltv / cac;
-  const meetsLtvCacTarget = ltvCacRatio !== null && ltvCacRatio >= 3;
+  const meetsLtvCacTarget = ltvCacRatio !== null && ltvCacRatio >= LTV_CAC_THRESHOLD;
 
   // Cuello de botella real: comparar costos mensuales (CAC amortizado por vida ≈ 1/churn).
+  // On a tie, the first key in `costs` declaration order wins (infra > llm > support > cac).
   const costs: Record<DominantCost, number> = {
     infra: fixed,
     llm: variableCostMonthly,
@@ -81,7 +85,7 @@ export function computeSellerEconomics(
   const perSeatMarginal = perSeatPrice - inputs.scansPerSeatMonth * variableCostPerScan;
   const minViableSeats =
     perSeatMarginal > 0
-      ? Math.ceil((3 * cac * churn + supportMonthly) / perSeatMarginal)
+      ? Math.ceil((LTV_CAC_THRESHOLD * cac * churn + supportMonthly) / perSeatMarginal)
       : Infinity;
 
   for (const s of [tier.cac, tier.monthlyChurn, tier.supportMonthly, c.LLM_COST_PER_SCAN]) {
