@@ -3,7 +3,7 @@
 // The base URL comes from VITE_API_URL (the Cloudflare tunnel / deployed backend).
 // The response shapes in src/lib/types.ts are the contract and must match the backend.
 
-import type { HealthStatus, VerifyResult } from "./types";
+import type { HealthStatus, VerifyResult, ProofPanel, DocumentView } from "./types";
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const ACCEPTED_EXTENSIONS = [".pdf", ".txt"] as const;
@@ -86,6 +86,36 @@ export async function verifyCitations(file: File): Promise<VerifyResult> {
   }
 
   return (await res.json()) as VerifyResult;
+}
+
+export async function getProof(matterId: string, idx: number): Promise<ProofPanel> {
+  const base = requireApiBase();
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/proof/${encodeURIComponent(matterId)}/${idx}`);
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (res.status === 404) throw new ApiError(404, "Proof not found.");
+  if (!res.ok) throw new ApiError(res.status, "Could not load proof.");
+  return (await res.json()) as ProofPanel;
+}
+
+export async function getDocument(matterId: string): Promise<DocumentView> {
+  // Check sessionStorage first — used for demo mode and offline caching
+  const cached = sessionStorage.getItem(`doc-${matterId}`);
+  if (cached) return JSON.parse(cached) as DocumentView;
+
+  const base = requireApiBase();
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/document/${encodeURIComponent(matterId)}`);
+  } catch {
+    throw new ApiError(0, "Could not reach the verification service.");
+  }
+  if (res.status === 404) throw new ApiError(404, "Document not found.");
+  if (!res.ok) throw new ApiError(res.status, "Could not load document.");
+  return (await res.json()) as DocumentView;
 }
 
 /**

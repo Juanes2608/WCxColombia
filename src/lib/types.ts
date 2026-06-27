@@ -35,7 +35,7 @@ export interface Layer2 {
   verdict: GoodLawVerdict;
   overruled_by: TreatmentRef[];
   distinguished_by: TreatmentRef[];
-  source: "neo4j" | "csv" | "not_checked" | "not_applicable";
+  source: "neo4j" | "csv" | "not_checked" | "not_applicable" | "agent";
 }
 
 export interface Statutory {
@@ -48,11 +48,97 @@ export interface Statutory {
   source_url: string;
 }
 
+export interface CorpusSource {
+  node_id: string;
+  citation: string;
+  short_name: string;
+  court: string;
+  domain: string;
+  bailii_url: string | null;
+  status: string;
+}
+
+export interface BriefPointer {
+  sentence: string;
+  paragraph_hint: string | null;
+  char_position: number;
+}
+
+export interface JudgmentPointer {
+  para_no: number;
+  excerpt: string;
+  is_holding: boolean;
+}
+
+export interface AmendmentSuggestion {
+  citation: string;
+  short_name: string;
+  proposition: string;
+  rationale: string;
+}
+
+export interface HoldingAnalysis {
+  case_summary: string | null;
+  verdict_reasoning: string | null;
+  brief_pointer: BriefPointer | null;
+  judgment_pointers: JudgmentPointer[];
+  amendments: AmendmentSuggestion[];
+  confidence: number;
+  holding_found: boolean;
+  analysis_mode: "full" | "degraded" | "none";
+  agent_model: string;
+}
+
 export interface CitationResult {
   raw_text: string;
+  corpus_source?: CorpusSource;
   layer1: Layer1;
   layer2: Layer2;
   statutory: Statutory | null;
+  holding_analysis?: HoldingAnalysis;
+  document_context?: string;
+  document_char_pos?: number;
+}
+
+export interface Transparency {
+  method: string;
+  verdict_source: string;
+  corpus_size: number;
+  limitations: string[];
+}
+
+export interface ProofPanel {
+  matter_id: string;
+  citation_index: number;
+  raw_citation: string;
+  verdict: AuthenticityVerdict;
+  confidence: number;
+  document_context: string;
+  document_char_pos: number;
+  document_claim: string;
+  corpus_proposition: string;
+  key_paragraph: string | null;
+  good_law_status: GoodLawVerdict;
+  overruled_by: TreatmentRef[];
+  distinguished_by: TreatmentRef[];
+  bailii_url: string | null;
+  llm_explanation: string | null;
+  static_explanation: string;
+  transparency: Transparency;
+}
+
+export interface DocumentCitation {
+  idx: number;
+  raw_text: string;
+  char_pos: number;
+  verdict: AuthenticityVerdict;
+}
+
+export interface DocumentView {
+  matter_id: string;
+  text: string;
+  char_count: number;
+  citations: DocumentCitation[];
 }
 
 export interface FinancialSummary {

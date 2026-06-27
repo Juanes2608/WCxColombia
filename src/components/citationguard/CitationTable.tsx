@@ -30,15 +30,16 @@ export function CitationTable({
   onSelect,
 }: {
   results: CitationResult[];
-  onSelect: (c: CitationResult) => void;
+  onSelect: (c: CitationResult, originalIdx: number) => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
 
   const rows = useMemo(() => {
-    const sorted = [...results].sort(
-      (a, b) => ORDER[a.layer1.verdict] - ORDER[b.layer1.verdict],
+    const indexed = results.map((r, i) => ({ r, i }));
+    const sorted = [...indexed].sort(
+      (a, b) => ORDER[a.r.layer1.verdict] - ORDER[b.r.layer1.verdict],
     );
-    return sorted.filter((r) => {
+    return sorted.filter(({ r }) => {
       if (filter === "flagged") return r.layer1.verdict !== "VERIFIED";
       if (filter === "verified") return r.layer1.verdict === "VERIFIED";
       return true;
@@ -78,23 +79,28 @@ export function CitationTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((r, i) => (
+          {rows.map(({ r, i }, rowIdx) => (
             <Tooltip key={`${r.raw_text}-${i}`}>
               <TooltipTrigger asChild>
                 <TableRow
                   tabIndex={0}
-                  onClick={() => onSelect(r)}
+                  onClick={() => onSelect(r, i)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onSelect(r);
+                      onSelect(r, i);
                     }
                   }}
                   className="cursor-pointer focus:outline-none focus-visible:bg-n100"
                 >
-                  <TableCell className="font-mono text-xs text-n500">{i + 1}</TableCell>
-                  <TableCell className="max-w-[18rem] truncate font-medium text-ink">
-                    {r.raw_text}
+                  <TableCell className="font-mono text-xs text-n500">{rowIdx + 1}</TableCell>
+                  <TableCell className="max-w-[18rem]">
+                    <p className="truncate font-medium text-ink">{r.raw_text}</p>
+                    {(r.holding_analysis?.brief_pointer?.sentence ?? r.document_context) && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-n500">
+                        {r.holding_analysis?.brief_pointer?.sentence ?? r.document_context}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell>
                     <VerdictBadge layer="authenticity" verdict={r.layer1.verdict} />
