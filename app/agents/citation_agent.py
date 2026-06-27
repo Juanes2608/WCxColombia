@@ -207,6 +207,17 @@ def _call_api(url: str, api_key: str, model: str, messages: list[dict]) -> dict 
     """Single API call. Returns parsed JSON or None on any error."""
     if not api_key:
         return None
+    # Infermatic (TotalGPT) does not support tool_choice="auto" — omit it for that provider.
+    is_infermatic = "totalgpt" in url
+    payload: dict = {
+        "model":       model,
+        "messages":    messages,
+        "tools":       TOOL_SCHEMAS,
+        "max_tokens":  1024,
+        "temperature": 0.0,
+    }
+    if not is_infermatic:
+        payload["tool_choice"] = "auto"
     try:
         r = httpx.post(
             url,
@@ -216,14 +227,7 @@ def _call_api(url: str, api_key: str, model: str, messages: list[dict]) -> dict 
                 "HTTP-Referer":  "https://traceit.ai",
                 "X-Title":       "TraceIT",
             },
-            json={
-                "model":       model,
-                "messages":    messages,
-                "tools":       TOOL_SCHEMAS,
-                "tool_choice": "auto",
-                "max_tokens":  1024,
-                "temperature": 0.0,
-            },
+            json=payload,
             timeout=_TIMEOUT,
         )
         r.raise_for_status()

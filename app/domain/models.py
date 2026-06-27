@@ -71,8 +71,20 @@ class ContextAnalysis(BaseModel):
     agent_model: str = "nemotron-super-120b"
 
 
+class CorpusSource(BaseModel):
+    """The verified corpus record matched to this citation — shown as provenance in the UI."""
+    node_id: str
+    citation: str           # canonical full citation from corpus
+    short_name: str         # display name (e.g. "Anglia Television v Reed")
+    court: str | None = None
+    domain: str | None = None
+    bailii_url: str | None = None   # direct link to the judgment on BAILII
+    status: str             # GOOD_LAW | OVERRULED | PARTIALLY_OVERRULED
+
+
 class CitationResult(BaseModel):
     raw_text: str
+    corpus_source: CorpusSource | None = None   # None only for FABRICATED citations
     layer1: Layer1Result
     layer2: Layer2Result
     statutory: StatutoryResult | None = None

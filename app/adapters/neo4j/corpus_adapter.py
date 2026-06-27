@@ -131,7 +131,8 @@ class Neo4jCorpusAdapter(ICorpusRepository):
         case_rec = session.run(
             "MATCH (c:Case {nodeId: $id}) "
             "RETURN c.citation AS citation, c.shortName AS shortName, "
-            "       c.domain AS domain, c.status AS status",
+            "       c.domain AS domain, c.status AS status, "
+            "       c.court AS court, c.bailiiUrl AS bailiiUrl",
             id=node_id,
         ).single()
         if case_rec is None:
@@ -150,6 +151,8 @@ class Neo4jCorpusAdapter(ICorpusRepository):
             domain=case_rec["domain"],
             propositions=props_rec["propositions"] if props_rec else [],
             status=case_rec["status"],
+            court=case_rec.get("court"),
+            bailii_url=case_rec.get("bailiiUrl"),
         )
 
 

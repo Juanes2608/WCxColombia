@@ -30,6 +30,7 @@ from app.domain.models import (
     AlternativeSuggestion,
     CitationResult,
     ContextAnalysis,
+    CorpusSource,
     Layer1Result,
     Layer1Verdict,
     Layer2Result,
@@ -184,8 +185,14 @@ class VerifyService:
                             )
                             if llm_text:
                                 layer1.llm_explanation = llm_text
+                        # Attach corpus provenance (None for FABRICATED)
+                        corpus_source = None
+                        if layer1.verdict != Layer1Verdict.FABRICATED:
+                            node = self.corpus.lookup(cit.raw_text)
+                            corpus_source = _node_to_source(node)
                         ordered[idx] = CitationResult(
                             raw_text=cit.raw_text,
+                            corpus_source=corpus_source,
                             layer1=layer1,
                             layer2=layer2,
                             statutory=None,
@@ -296,8 +303,13 @@ def _deterministic_fallback(
     else:
         layer2 = Layer2Result(verdict=Layer2Verdict.NOT_CHECKED, source="not_checked")
 
+    corpus_source = None
+    if layer1.verdict != Layer1Verdict.FABRICATED:
+        corpus_source = _node_to_source(corpus_node)
+
     result = CitationResult(
         raw_text=raw_text,
+        corpus_source=corpus_source,
         layer1=layer1,
         layer2=layer2,
         statutory=None,
@@ -337,6 +349,21 @@ def _agent_verdict_to_layers(
     )
 
     return layer1, layer2, context_analysis
+
+
+def _node_to_source(node) -> "CorpusSource | None":
+    """Convert a CaseNode to the CorpusSource provenance block for the API response."""
+    if node is None:
+        return None
+    return CorpusSource(
+        node_id=node.node_id,
+        citation=node.citation,
+        short_name=node.short_name,
+        court=node.court,
+        domain=node.domain,
+        bailii_url=node.bailii_url or None,
+        status=node.status,
+    )
 
 
 def _statute_layer1(raw_text: str, lookup) -> Layer1Result:
