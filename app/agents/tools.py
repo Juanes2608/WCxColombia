@@ -95,15 +95,17 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "find_supporting_authority",
             "description": (
-                "Search the case law database for cases that support a given legal proposition. "
-                "Returns candidate cases with their actual propositions for comparison."
+                "Only call this when verdict is MISAPPLIED and you want to suggest a better citation. "
+                "Searches the case law database for cases that genuinely support a given proposition. "
+                "Returns candidate cases with their actual propositions. "
+                "Do NOT call this for FABRICATED or VERIFIED citations."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "proposition": {
                         "type": "string",
-                        "description": "The legal proposition to find supporting authority for.",
+                        "description": "The legal proposition the document is trying to support.",
                     }
                 },
                 "required": ["proposition"],
@@ -114,7 +116,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "submit_verdict",
-            "description": "Submit your final verdict for this citation. Call this when your investigation is complete.",
+            "description": "Submit your final verdict. Call this only after completing your investigation.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -122,31 +124,35 @@ TOOL_SCHEMAS = [
                         "type": "string",
                         "enum": ["FABRICATED", "MISAPPLIED", "VERIFIED"],
                         "description": (
-                            "FABRICATED: the case does not exist in the database. "
-                            "MISAPPLIED: the case exists but is cited for the wrong proposition. "
-                            "VERIFIED: the case exists, is good law, and is correctly applied."
+                            "FABRICATED: lookup_corpus returned found=false — case does not exist. "
+                            "MISAPPLIED: case exists but the document attributes the wrong legal principle to it. "
+                            "VERIFIED: case exists, is correctly applied, and check_treatment_history confirms good law."
                         ),
                     },
                     "reason": {
                         "type": "string",
-                        "description": "One sentence explaining the verdict based on your findings.",
+                        "description": "One sentence explaining the verdict based on your tool findings.",
                     },
                     "layer2_verdict": {
                         "type": "string",
                         "enum": ["GOOD_LAW", "OVERRULED", "DISTINGUISHED", "NOT_CHECKED"],
-                        "description": "Treatment history of the case.",
+                        "description": (
+                            "Result from check_treatment_history. "
+                            "Use NOT_CHECKED only when verdict=FABRICATED (case does not exist, no history to check). "
+                            "For all real cases (VERIFIED or MISAPPLIED), call check_treatment_history first."
+                        ),
                     },
                     "proposition_cited": {
                         "type": "string",
-                        "description": "What the document claims this case establishes (for MISAPPLIED).",
+                        "description": "Required when verdict=MISAPPLIED: what the document claims this case establishes (from get_document_context).",
                     },
                     "proposition_actual": {
                         "type": "string",
-                        "description": "What the case actually establishes (for MISAPPLIED).",
+                        "description": "Required when verdict=MISAPPLIED: what the case actually establishes (from lookup_corpus propositions).",
                     },
                     "alternative_citation": {
                         "type": "string",
-                        "description": "A better citation that genuinely supports the proposition, if found.",
+                        "description": "A better citation for MISAPPLIED cases — only use names returned by find_supporting_authority.",
                     },
                 },
                 "required": ["verdict", "reason", "layer2_verdict"],
