@@ -21,16 +21,16 @@ const allSourced = (): Sourced<number>[] => {
 };
 
 describe("provenance", () => {
-  it("every VERIFICADO constant has a non-empty source", () => {
+  it("every VERIFIED constant has a non-empty source", () => {
     for (const s of allSourced()) {
-      if (s.provenance === "VERIFICADO") {
+      if (s.provenance === "VERIFIED") {
         expect(s.source.length, `source for ${s.unit}/${s.value}`).toBeGreaterThan(0);
       }
     }
   });
-  it("every HIPOTESIS constant is editable", () => {
+  it("every ASSUMPTION constant is editable", () => {
     for (const s of allSourced()) {
-      if (s.provenance === "HIPOTESIS") {
+      if (s.provenance === "ASSUMPTION") {
         expect(s.editable, `editable for ${s.unit}/${s.value}`).toBe(true);
       }
     }

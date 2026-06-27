@@ -33,7 +33,7 @@ function Avatar({ member }: { member: TeamMember }) {
     return (
       <img
         src={member.photo}
-        alt={member.name}
+        alt=""
         width={64}
         height={64}
         loading="lazy"

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TraceIt — Mapa de posicionamiento competitivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#14181A;        /* Near Black */
+    --lime:#C6F035;       /* Acid Lime */
+    --action:#5F8C00;     /* Action Green */
+    --paper:#F6F7F2;      /* Soft BG */
+    --n500:#5b6266;
+    --n300:#c9cdc7;
+    --n100:#e7e9e3;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    padding:40px 32px 56px;
+  }
+  .wrap{max-width:1480px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--action)}
+  .brand .dot{width:18px;height:18px;border:2px solid var(--ink);border-radius:4px;display:inline-grid;place-items:center;font-weight:700;color:var(--ink);position:relative}
+  .brand .dot::after{content:"";position:absolute;inset:3px;background:var(--lime);clip-path:polygon(50% 0,62% 38%,100% 38%,70% 62%,82% 100%,50% 76%,18% 100%,30% 62%,0 38%,38% 38%)}
+  h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.1;margin:14px 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--n500);font-size:15px;max-width:760px;margin:0}
+  .mark{background:linear-gradient(transparent 58%, var(--lime) 58%);padding:0 .12em}
+  .insight{margin:22px 0 28px;border-left:3px solid var(--action);background:#fff;padding:14px 18px;border-radius:0 10px 10px 0;font-size:14.5px;box-shadow:0 1px 0 var(--n100)}
+  .insight b{color:var(--ink)}
+  .maps{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  @media (max-width:1180px){.maps{grid-template-columns:1fr}}
+  .panel{background:#fff;border:1px solid var(--n100);border-radius:16px;padding:20px 18px 10px;box-shadow:0 6px 24px -18px rgba(20,24,26,.4)}
+  .panel h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:2px 4px 2px}
+  .panel .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--action);margin:0 4px}
+  .panel .read{font-size:12.5px;color:var(--n500);margin:6px 6px 4px;line-height:1.5}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:16px 22px;align-items:center;margin:20px 4px 0;font-size:12.5px;color:var(--ink)}
+  .legend .it{display:flex;align-items:center;gap:8px}
+  .sw{width:16px;height:16px;display:inline-block;flex:0 0 auto}
+  .foot{margin-top:26px;font-size:11px;color:var(--n500);line-height:1.6;font-family:var(--mono)}
+  .foot b{color:var(--ink)}
+  a{color:var(--action)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="dot"></span> Trace<span style="color:var(--action)">It</span> · Competitive positioning</div>
+  <h1>El cuadrante vacío: <span class="mark">UK + verificación determinista</span></h1>
+  <p class="sub">Mapa de posicionamiento de ~16 herramientas de verificación de citas y legal‑AI. Datos jun&nbsp;2026 (pricing mayormente estimado; re‑verificar antes del pitch).</p>
+
+  <div class="insight">
+    <b>Hallazgo central:</b> el cohorte <b>determinista es 100&nbsp;% US</b> (atado a CourtListener); el cohorte <b>UK es 100&nbsp;% generativo / contratos</b>. Solo&nbsp;Wexler toca case&nbsp;law UK y es LLM. → <b>TraceIt es el único en “UK&nbsp;+&nbsp;determinista”</b>, y además el único con <b>good‑law check</b>.
+  </div>
+
+  <div class="maps">
+    <div class="panel">
+      <p class="tag">Mapa B · héroe — white space</p>
+      <h2>Cobertura de jurisdicción × Determinismo del veredicto</h2>
+      <div id="mapB"></div>
+      <p class="read">El cuadrante superior‑derecho (UK&nbsp;+&nbsp;determinista) está vacío salvo TraceIt. Los cite‑checkers deterministas viven en el superior‑izquierdo (US); los asistentes UK, abajo (generativos).</p>
+    </div>
+    <div class="panel">
+      <p class="tag">Mapa A · apoyo — categoría</p>
+      <h2>Determinismo del veredicto × Amplitud del producto</h2>
+      <div id="mapA"></div>
+      <p class="read">Aquí TraceIt comparte el cuadrante inferior‑derecho (determinista&nbsp;+&nbsp;point‑tool) con cite‑checkers US — por eso el Mapa&nbsp;B, que añade jurisdicción, es el que aísla la ventaja.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="it"><svg class="sw" viewBox="0 0 16 16"><polygon points="8,0 10,6 16,6 11,10 13,16 8,12 3,16 5,10 0,6 6,6" fill="#C6F035" stroke="#14181A" stroke-width="1"/></svg> TraceIt (nosotros)</span>
+    <span class="it"><svg class="sw" viewBox="0 0 16 16"><rect x="3.3" y="3.3" width="9.4" height="9.4" transform="rotate(45 8 8)" fill="#5F8C00"/></svg> Cite‑checker determinista (US)</span>
+    <span class="it"><svg class="sw" viewBox="0 0 16 16"><rect x="3.3" y="3.3" width="9.4" height="9.4" transform="rotate(45 8 8)" fill="none" stroke="#9aa09c" stroke-width="1.5"/></svg> Determinista pero solo formato</span>
+    <span class="it"><svg class="sw" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#14181A" opacity="0.6"/></svg> Asistente generativo / LLM</span>
+    <span class="it"><svg class="sw" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#5F8C00" stroke-width="2" stroke-dasharray="3 2"/></svg> Hace good‑law check</span>
+  </div>
+
+  <p class="foot">
+    <b>Ejes Mapa B:</b> X = US‑only → UK/EU nativo · Y = veredicto generativo (LLM) → verificación determinista (sin LLM). &nbsp;|&nbsp; <b>Ejes Mapa A:</b> X = generativo → determinista · Y = point‑tool de citas → plataforma amplia.<br/>
+    <b>Fuentes:</b> Stanford RegLab/HAI 2024 (alucinación Lexis ~17% / Westlaw ~34%) · Ayinde v Haringey [2025] EWHC 1383 · LawNext / Artificial Lawyer / Legal IT Insider 2024–26 (Clearbrief, BriefCatch, Legora, CoCounsel UK) · TechCrunch 2026 (Legora $5.6B, Harvey $11B) · Clio–vLex $1B (LawNext 2025) · free.law (CourtListener/eyecite). Pricing de vendors = estimado de terceros. Posiciones = juicio analítico sobre datos públicos.
+  </p>
+</div>
+
+<script>
+const DATA = [
+  {n:'TraceIt', g:'hero',  b:{x:9.0,y:9.0}, a:{x:9.2,y:1.6}, note:'UK · determinista · good-law'},
+  {n:'CourtListener / eyecite', g:'detUS', b:{x:0.2,y:9.0}, a:{x:8.4,y:3.0}},
+  {n:'JurisCheck',  g:'detUS', b:{x:0.5,y:8.2}, a:{x:8.1,y:1.3}},
+  {n:'CiteCheck AI', g:'detUS', b:{x:0.3,y:7.0}, a:{x:6.8,y:2.1}},
+  {n:'CiteSentinel', g:'detUS', b:{x:1.7,y:7.5}, a:{x:7.5,y:3.4}},
+  {n:'Clearbrief',  g:'detUS', b:{x:1.4,y:6.2}, a:{x:6.2,y:5.0}, note:'sin good-law'},
+  {n:'BriefCatch',  g:'detFmt', b:{x:0.7,y:6.6}, a:{x:6.6,y:4.6}, note:'solo formato'},
+  {n:'Paxton AI',   g:'gen', b:{x:2.2,y:2.3}, a:{x:2.3,y:7.0}},
+  {n:'Alexi',       g:'gen', b:{x:1.0,y:1.2}, a:{x:1.2,y:5.0}},
+  {n:'Descrybe.ai', g:'gen', b:{x:1.0,y:3.1}, a:{x:3.1,y:5.0}},
+  {n:'Harvey',      g:'gen', b:{x:5.0,y:1.0}, a:{x:1.0,y:10.0}},
+  {n:'Legora',      g:'gen', b:{x:4.0,y:1.4}, a:{x:1.4,y:9.6}},
+  {n:'CoCounsel',   g:'gen', b:{x:7.0,y:2.3}, a:{x:2.3,y:9.0}},
+  {n:'Lexis+ AI',   g:'gen', b:{x:7.6,y:1.6}, a:{x:1.6,y:8.5}},
+  {n:'vLex / Vincent', g:'gen', b:{x:8.4,y:2.7}, a:{x:2.7,y:8.0}},
+  {n:'Wexler AI',   g:'gen', b:{x:6.0,y:2.0}, a:{x:2.0,y:6.0}},
+];
+
+// per-map label offsets {dx,dy,anchor} to avoid collisions
+const LBL = {
+  B:{
+    'TraceIt':{dx:-16,dy:5,anchor:'end'},
+    'CourtListener / eyecite':{dx:10,dy:-1,anchor:'start'},
+    'JurisCheck':{dx:10,dy:3,anchor:'start'},
+    'CiteCheck AI':{dx:10,dy:2,anchor:'start'},
+    'CiteSentinel':{dx:10,dy:-1,anchor:'start'},
+    'BriefCatch':{dx:10,dy:11,anchor:'start'},
+    'Clearbrief':{dx:10,dy:5,anchor:'start'},
+    'Harvey':{dx:10,dy:4,anchor:'start'},
+    'Legora':{dx:10,dy:4,anchor:'start'},
+    'CoCounsel':{dx:10,dy:-2,anchor:'start'},
+    'Lexis+ AI':{dx:10,dy:11,anchor:'start'},
+    'vLex / Vincent':{dx:10,dy:4,anchor:'start'},
+    'Wexler AI':{dx:-10,dy:4,anchor:'end'},
+    'Paxton AI':{dx:10,dy:4,anchor:'start'},
+    'Alexi':{dx:10,dy:4,anchor:'start'},
+    'Descrybe.ai':{dx:10,dy:4,anchor:'start'},
+  },
+  A:{
+    'TraceIt':{dx:-16,dy:-8,anchor:'end'},
+    'CourtListener / eyecite':{dx:-10,dy:-8,anchor:'end'},
+    'JurisCheck':{dx:12,dy:6,anchor:'start'},
+    'CiteCheck AI':{dx:-10,dy:4,anchor:'end'},
+    'CiteSentinel':{dx:12,dy:0,anchor:'start'},
+    'Clearbrief':{dx:10,dy:0,anchor:'start'},
+    'BriefCatch':{dx:10,dy:13,anchor:'start'},
+    'Harvey':{dx:10,dy:11,anchor:'start'},
+    'Legora':{dx:10,dy:2,anchor:'start'},
+    'CoCounsel':{dx:10,dy:3,anchor:'start'},
+    'Lexis+ AI':{dx:-10,dy:3,anchor:'end'},
+    'vLex / Vincent':{dx:10,dy:3,anchor:'start'},
+    'Wexler AI':{dx:10,dy:4,anchor:'start'},
+    'Paxton AI':{dx:10,dy:4,anchor:'start'},
+    'Alexi':{dx:10,dy:4,anchor:'start'},
+    'Descrybe.ai':{dx:10,dy:4,anchor:'start'},
+  }
+};
+
+const VB={w:680,h:620}, P={l:84,r:60,t:60,b:104};
+const PW=VB.w-P.l-P.r, PH=VB.h-P.t-P.b;
+const X=v=>P.l+(v/10)*PW;
+const Y=v=>P.t+(1-v/10)*PH;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+function marker(d){
+  const cx=0,cy=0;
+  if(d.g==='hero'){
+    const r=15;
+    let pts=[];
+    for(let i=0;i<10;i++){const ang=-Math.PI/2+i*Math.PI/5;const rr=i%2?r*0.42:r;pts.push((Math.cos(ang)*rr).toFixed(1)+','+(Math.sin(ang)*rr).toFixed(1));}
+    return `<polygon points="${pts.join(' ')}" fill="#C6F035" stroke="#14181A" stroke-width="2"/>`;
+  }
+  if(d.g==='detUS') return `<rect x="-6.4" y="-6.4" width="12.8" height="12.8" transform="rotate(45)" fill="#5F8C00"/>`;
+  if(d.g==='detFmt') return `<rect x="-6" y="-6" width="12" height="12" transform="rotate(45)" fill="#ffffff" stroke="#9aa09c" stroke-width="1.8"/>`;
+  return `<circle r="6.6" fill="#14181A" opacity="0.62"/>`;
+}
+
+function renderMap(mode, axes){
+  const litQuad = mode==='B'
+    ? {x0:X(5),y0:Y(10),w:X(10)-X(5),h:Y(5)-Y(10)}     // top-right
+    : {x0:X(5),y0:Y(5),w:X(10)-X(5),h:Y(0)-Y(5)};      // bottom-right
+  let s=`<svg viewBox="0 0 ${VB.w} ${VB.h}" role="img" aria-label="${esc(axes.title)}">`;
+  // highlight quadrant
+  s+=`<rect x="${litQuad.x0}" y="${litQuad.y0}" width="${litQuad.w}" height="${litQuad.h}" fill="#C6F035" opacity="0.16"/>`;
+  if(mode==='B'){
+    s+=`<text x="${litQuad.x0+litQuad.w-10}" y="${litQuad.y0+18}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5F8C00" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
+  } else {
+    s+=`<text x="${litQuad.x0+12}" y="${litQuad.y0+litQuad.h-14}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5F8C00" letter-spacing="0.06em">${esc(axes.quad)}</text>`;
+  }
+  // plot frame
+  s+=`<rect x="${P.l}" y="${P.t}" width="${PW}" height="${PH}" fill="none" stroke="#e7e9e3"/>`;
+  // gridlines
+  for(let i=1;i<10;i++){
+    s+=`<line x1="${X(i)}" y1="${P.t}" x2="${X(i)}" y2="${P.t+PH}" stroke="#f0f1ec"/>`;
+    s+=`<line x1="${P.l}" y1="${Y(i)}" x2="${P.l+PW}" y2="${Y(i)}" stroke="#f0f1ec"/>`;
+  }
+  // quadrant divider (dashed)
+  s+=`<line x1="${X(5)}" y1="${P.t}" x2="${X(5)}" y2="${P.t+PH}" stroke="#c9cdc7" stroke-dasharray="5 4"/>`;
+  s+=`<line x1="${P.l}" y1="${Y(5)}" x2="${P.l+PW}" y2="${Y(5)}" stroke="#c9cdc7" stroke-dasharray="5 4"/>`;
+  // axis labels
+  const mid=(P.l+PW/2);
+  s+=`<text x="${P.l}" y="${P.t+PH+30}" text-anchor="start" font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">◄ ${esc(axes.xL)}</text>`;
+  s+=`<text x="${P.l+PW}" y="${P.t+PH+30}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">${esc(axes.xR)} ►</text>`;
+  s+=`<text x="${P.l+PW/2}" y="${P.t+PH+52}" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11.5" fill="#14181A">${esc(axes.xTitle)}</text>`;
+  // y axis labels (rotated)
+  s+=`<text transform="translate(${P.l-50} ${P.t+12}) " font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">▲ ${esc(axes.yT)}</text>`;
+  s+=`<text transform="translate(${P.l-50} ${P.t+PH}) " font-family="JetBrains Mono,monospace" font-size="11" fill="#5b6266">▼ ${esc(axes.yB)}</text>`;
+  s+=`<text transform="translate(${P.l-66} ${P.t+PH/2}) rotate(-90)" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11.5" fill="#14181A">${esc(axes.yTitle)}</text>`;
+
+  // points + labels
+  DATA.forEach(d=>{
+    const pt=d[mode==='B'?'b':'a'];
+    const px=X(pt.x), py=Y(pt.y);
+    const lo=LBL[mode][d.n]||{dx:10,dy:4,anchor:'start'};
+    const isHero=d.g==='hero';
+    // good-law dashed halo
+    if(isHero){ s+=`<circle cx="${px}" cy="${py}" r="22" fill="none" stroke="#5F8C00" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>`; }
+    s+=`<g transform="translate(${px} ${py})">${marker(d)}</g>`;
+    // label
+    const lx=px+lo.dx, ly=py+lo.dy;
+    const weight=isHero?'600':'500';
+    const fill=isHero?'#14181A':'#14181A';
+    const size=isHero?'13':'11';
+    s+=`<text x="${lx}" y="${ly}" text-anchor="${lo.anchor}" font-family="${isHero?'Inter,sans-serif':'JetBrains Mono,monospace'}" font-weight="${weight}" font-size="${size}" fill="${fill}">${esc(d.n)}</text>`;
+    if(d.note){ s+=`<text x="${lx}" y="${ly+12}" text-anchor="${lo.anchor}" font-family="JetBrains Mono,monospace" font-size="9.5" fill="${isHero?'#5F8C00':'#9aa09c'}">${esc(d.note)}</text>`; }
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+document.getElementById('mapB').innerHTML = renderMap('B',{
+  title:'Mapa B', quad:'cuadrante vacío',
+  xL:'US-only', xR:'UK / EU nativo', xTitle:'Cobertura de jurisdicción',
+  yT:'Determinista (sin LLM)', yB:'Generativo (LLM)', yTitle:'Pureza del veredicto'
+});
+document.getElementById('mapA').innerHTML = renderMap('A',{
+  title:'Mapa A', quad:'determinista + point-tool',
+  xL:'Generativo / LLM', xR:'Determinista / sin-LLM', xTitle:'Pureza del veredicto',
+  yT:'Plataforma amplia', yB:'Point-tool de citas', yTitle:'Amplitud del producto'
+});
+</script>
+</body>
+</html>

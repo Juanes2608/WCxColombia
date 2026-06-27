@@ -35,7 +35,7 @@ export function computeSellerEconomics(
   const requestedScans = inputs.seats * inputs.scansPerSeatMonth;
   const scansMonthly = Math.min(requestedScans, capacity);
   const capacityClamped = requestedScans > capacity;
-  if (capacityClamped) uncertainty.push("uso recortado al tope de capacidad del tier (clamp)");
+  if (capacityClamped) uncertainty.push("usage clamped to the tier's capacity cap (clamp)");
 
   const variableCostMonthly = scansMonthly * variableCostPerScan;
   const supportMonthly = tier.supportMonthly.value;
@@ -59,7 +59,7 @@ export function computeSellerEconomics(
     ltv = contributionMonthly / churn;
   } else if (contributionMonthly > 0) {
     ltv = Infinity;
-    uncertainty.push("churn = 0 → LTV infinito (hipótesis irreal, ajustar churn)");
+    uncertainty.push("churn = 0 → infinite LTV (unrealistic assumption, adjust churn)");
   } else {
     ltv = null;
   }
@@ -68,7 +68,7 @@ export function computeSellerEconomics(
     ltv === null || cac <= 0 ? null : ltv === Infinity ? Infinity : ltv / cac;
   const meetsLtvCacTarget = ltvCacRatio !== null && ltvCacRatio >= LTV_CAC_THRESHOLD;
 
-  // Cuello de botella real: comparar costos mensuales (CAC amortizado por vida ≈ 1/churn).
+  // Real bottleneck: compare monthly costs (CAC amortized over lifetime ≈ 1/churn).
   // On a tie, the first key in `costs` declaration order wins (infra > llm > support > cac).
   const costs: Record<DominantCost, number> = {
     infra: fixed,
@@ -80,7 +80,7 @@ export function computeSellerEconomics(
     costs[a] >= costs[b] ? a : b,
   );
 
-  // Asientos mínimos para LTV/CAC >= 3 (piso mid-market). Solo significativo para tiers por-asiento.
+  // Minimum seats for LTV/CAC >= 3 (mid-market floor). Only meaningful for per-seat tiers.
   const perSeatPrice = tier.pricePerSeatMonthly?.value ?? 0;
   const perSeatMarginal = perSeatPrice - inputs.scansPerSeatMonth * variableCostPerScan;
   const minViableSeats =
@@ -89,7 +89,7 @@ export function computeSellerEconomics(
       : Infinity;
 
   for (const s of [tier.cac, tier.monthlyChurn, tier.supportMonthly, c.LLM_COST_PER_SCAN]) {
-    if (s.provenance === "HIPOTESIS") uncertainty.push(`HIPÓTESIS: ${s.source}`);
+    if (s.provenance === "ASSUMPTION") uncertainty.push(`ASSUMPTION: ${s.source}`);
   }
 
   return {

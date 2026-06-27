@@ -22,7 +22,7 @@ export async function sendChatMessage(
 ): Promise<string> {
   const base = apiBase();
   if (!base) {
-    throw new Error("Backend URL no configurada. Define VITE_CHAT_API_URL o VITE_API_URL.");
+    throw new Error("Backend URL not configured. Set VITE_CHAT_API_URL or VITE_API_URL.");
   }
   let res: Response;
   try {
@@ -32,14 +32,14 @@ export async function sendChatMessage(
       body: JSON.stringify({ messages, snapshot }),
     });
   } catch {
-    throw new Error("No se pudo contactar el servicio de chat.");
+    throw new Error("Could not reach the chat service.");
   }
   if (!res.ok) {
-    throw new Error("El servicio de chat falló. Inténtalo de nuevo.");
+    throw new Error("The chat service failed. Please try again.");
   }
   const body = (await res.json()) as { reply?: unknown };
   if (typeof body.reply !== "string") {
-    throw new Error("Respuesta de chat inválida.");
+    throw new Error("Invalid chat response.");
   }
   return body.reply;
 }

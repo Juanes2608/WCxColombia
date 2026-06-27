@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 // Strong ease-out curve (Emil): built-in easings are too weak for entrances.
@@ -21,8 +21,10 @@ import {
   sellerScenarios,
   formatGBP,
   CONSTANTS,
-  type BuyerInputs,
-  type SellerInputs,
+  toBuyerInputs,
+  toSellerInputs,
+  changedKeys,
+  type CalculatorInputs,
   type TierId,
 } from "@/lib/pricing";
 import { ChatPanel } from "@/components/citationguard/ChatPanel";
@@ -63,14 +65,14 @@ function PlanCards({
             ? p.priceMonthly!.value * p.annualFactor.value
             : p.priceMonthly!.value;
         const priceSuffix = p.pricePerSeatMonthly
-          ? "/abogado/mes"
+          ? "/seat/mo"
           : annual
-            ? "/mo · anual"
+            ? "/mo · annual"
             : "/mo";
 
         const capacityLine = p.scanCapacity
-          ? `Hasta ${p.scanCapacity.value} scans/mes`
-          : `Fair-use ${p.scanCapacityPerSeat!.value} scans/abogado/mes`;
+          ? `Up to ${p.scanCapacity.value} scans/mo`
+          : `Fair-use ${p.scanCapacityPerSeat!.value} scans/seat/mo`;
 
         const facts = [
           capacityLine,
@@ -154,6 +156,7 @@ function Field({
   step,
   prefix,
   suffix,
+  highlight,
 }: {
   label: string;
   hint?: string;
@@ -164,9 +167,14 @@ function Field({
   step: number;
   prefix?: string;
   suffix?: string;
+  highlight?: boolean;
 }) {
   return (
-    <div>
+    <div
+      className={`rounded-lg transition-shadow duration-300 ${
+        highlight ? "shadow-[0_0_0_2px_var(--color-accent-lime,#bef264)]" : ""
+      }`}
+    >
       <div className="flex items-baseline justify-between">
         <label className="text-sm font-medium text-ink">{label}</label>
         <span className="font-mono text-sm text-ink">
@@ -193,10 +201,12 @@ function ReturnCalculator({
   planId,
   setPlanId,
   annual,
+  setAnnual,
 }: {
   planId: TierId;
   setPlanId: (id: TierId) => void;
   annual: boolean;
+  setAnnual: (v: boolean) => void;
 }) {
   const [filings, setFilings] = useState(12);
   const [hoursPerFiling, setHoursPerFiling] = useState(2.5);
@@ -204,19 +214,38 @@ function ReturnCalculator({
   const [automation, setAutomation] = useState(65);
   const [seats, setSeats] = useState(793);
   const [realization, setRealization] = useState(50);
+  const [highlight, setHighlight] = useState<string[]>([]);
+  const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tier = TIERS[planId];
 
-  const inputs: BuyerInputs = {
-    tierId: planId,
-    seats: planId === "enterprise" ? seats : 1,
-    filingsPerSeatMonth: filings,
+  const calcInputs: CalculatorInputs = {
+    tier: planId,
+    billingCycle: annual ? "annual" : "monthly",
+    seats,
+    filingsPerMonth: filings,
     hoursPerFiling,
     blendedRate: rate,
-    automationPct: automation / 100,
-    valueRealizationPct: realization / 100,
-    includeRiskEV: false,
-    billingCycle: annual ? "annual" : "monthly",
+    automationPct: automation,
+    valueRealizationPct: realization,
+  };
+  const inputs = toBuyerInputs(calcInputs);
+
+  // Apply LLM-proposed inputs to the sliders and briefly flash what moved.
+  // The engine recomputes every output reactively — the model never sets a result.
+  const onApplyInputs = (nextInputs: CalculatorInputs) => {
+    const moved = changedKeys(calcInputs, nextInputs);
+    setPlanId(nextInputs.tier);
+    setAnnual(nextInputs.billingCycle === "annual");
+    setSeats(nextInputs.seats);
+    setFilings(nextInputs.filingsPerMonth);
+    setHoursPerFiling(nextInputs.hoursPerFiling);
+    setRate(nextInputs.blendedRate);
+    setAutomation(nextInputs.automationPct);
+    setRealization(nextInputs.valueRealizationPct);
+    setHighlight(moved as string[]);
+    if (hlTimer.current) clearTimeout(hlTimer.current);
+    hlTimer.current = setTimeout(() => setHighlight([]), 1600);
   };
 
   const eco = useMemo(
@@ -231,12 +260,7 @@ function ReturnCalculator({
     [planId, seats, filings, hoursPerFiling, rate, automation, realization, annual],
   );
 
-  const sellerInputs: SellerInputs = {
-    tierId: planId,
-    seats: planId === "enterprise" ? seats : 1,
-    scansPerSeatMonth: filings,
-    billingCycle: annual ? "annual" : "monthly",
-  };
+  const sellerInputs = toSellerInputs(calcInputs);
 
   const sellerEco = useMemo(
     () => computeSellerEconomics(sellerInputs, tier),
@@ -303,20 +327,21 @@ function ReturnCalculator({
             }}
             className="rounded-lg border border-action px-3 py-1.5 text-xs font-semibold text-action"
           >
-            Cargar caso White &amp; Case
+            Load the White &amp; Case preset
           </button>
         </div>
 
         <div className="mt-7 space-y-7">
           {planId === "enterprise" && (
             <Field
-              label="Abogados (asientos)"
-              hint="Número de asientos de la firma en TraceIt."
+              label="Lawyers (seats)"
+              hint="Number of firm seats on TraceIt."
               value={seats}
               onChange={setSeats}
               min={1}
               max={2643}
               step={1}
+              highlight={highlight.includes("seats")}
             />
           )}
           <Field
@@ -327,6 +352,7 @@ function ReturnCalculator({
             min={1}
             max={120}
             step={1}
+            highlight={highlight.includes("filingsPerMonth")}
           />
           <Field
             label="Hours checking citations per filing"
@@ -337,6 +363,7 @@ function ReturnCalculator({
             max={8}
             step={0.5}
             suffix=" h"
+            highlight={highlight.includes("hoursPerFiling")}
           />
           <Field
             label="Blended hourly rate"
@@ -347,6 +374,7 @@ function ReturnCalculator({
             max={600}
             step={10}
             prefix="£"
+            highlight={highlight.includes("blendedRate")}
           />
           <Field
             label="Honesty knob: time TraceIt actually removes"
@@ -357,16 +385,18 @@ function ReturnCalculator({
             max={100}
             step={5}
             suffix="%"
+            highlight={highlight.includes("automationPct")}
           />
           <Field
-            label="Realización: % de horas ahorradas que se vuelven £"
-            hint="Solo cuenta si esas horas se re-facturan o liberan capacidad billable."
+            label="Realization: % of saved hours that turn into £"
+            hint="Only counts if those hours are re-billed or free up billable capacity."
             value={realization}
             onChange={setRealization}
             min={0}
             max={100}
             step={5}
             suffix="%"
+            highlight={highlight.includes("valueRealizationPct")}
           />
         </div>
       </div>
@@ -433,15 +463,7 @@ function ReturnCalculator({
       </div>
     </div>
 
-    <div className="mt-8">
-      <ChatPanel
-        buyer={eco}
-        seller={sellerEco}
-        buyerScenarios={scen}
-        sellerScenarios={sellerScen}
-        tier={planId}
-      />
-    </div>
+    <ChatPanel inputs={calcInputs} onApplyInputs={onApplyInputs} />
     </div>
   );
 }
@@ -686,7 +708,7 @@ function PricingPage() {
           </p>
         </div>
         <div className="mt-10">
-          <ReturnCalculator planId={planId} setPlanId={setPlanId} annual={annual} />
+          <ReturnCalculator planId={planId} setPlanId={setPlanId} annual={annual} setAnnual={setAnnual} />
         </div>
       </section>
 

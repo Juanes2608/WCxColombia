@@ -25,7 +25,7 @@ export function computeBuyerEconomics(
       c.LEGAL_RAG_HALLUCINATION_RATE.value *
       c.P_REACHES_COURT.value *
       (c.DIRECT_WASTED_COSTS_PER_INCIDENT.value + c.REPUTATIONAL_EXPOSURE_PER_INCIDENT.value);
-    uncertainty.push("riesgo EV: directo £13.5k (Ayinde, V) + reputacional editable (H); citas/filing y P(corte) son H");
+    uncertainty.push("risk EV: direct £13.5k (Ayinde, V) + editable reputational (H); citations/filing and P(court) are H");
   }
 
   const netBenefitMonthly = realizedTimeValueMonthly + riskEVMonthly - effective;
@@ -40,7 +40,7 @@ export function computeBuyerEconomics(
   const perSeatValue = (realizedTimeValueMonthly + riskEVMonthly) / seatDivisor;
   const perSeatRoi = perSeatCost > 0 ? (perSeatValue - perSeatCost) / perSeatCost : null;
 
-  uncertainty.push("valor de tiempo descontado por valueRealizationPct (horas → £ solo si se re-facturan)");
+  uncertainty.push("time value discounted by valueRealizationPct (hours → £ only if they are re-billed)");
 
   return {
     effectiveLicenseMonthly: effective,

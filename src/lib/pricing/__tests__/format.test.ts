@@ -15,7 +15,7 @@ describe("format", () => {
     expect(formatRatio(Infinity)).toBe("∞");
   });
   it("formats months and null", () => {
-    expect(formatMonths(1.56)).toBe("1.6 meses");
-    expect(formatMonths(null)).toBe("aún no");
+    expect(formatMonths(1.56)).toBe("1.6 months");
+    expect(formatMonths(null)).toBe("not yet");
   });
 });

@@ -3,7 +3,13 @@ export { CONSTANTS, TIERS, TIERS_LIST, MODEL_AS_OF, DISCLAIMER } from "./constan
 export { computeBuyerEconomics } from "./buyer";
 export { computeSellerEconomics, effectiveLicenseMonthly, tierCapacity } from "./seller";
 export { buyerScenarios, sellerScenarios } from "./scenarios";
-export { buildChatContext, buildSystemPrompt } from "./chat-context";
+export { buildSnapshot, buildSystemPrompt } from "./chat-context";
+export {
+  INPUT_BOUNDS, DEFAULT_INPUTS, TIER_IDS, CalculatorActionSchema,
+  clampInputs, applyAction, parseInputsAction, toBuyerInputs, toSellerInputs,
+  describeChanges, changedKeys,
+} from "./inputs";
+export type { CalculatorAction, NumericInputKey, ParsedReply } from "./inputs";
 export { formatGBP, formatPct, formatRatio, formatMonths } from "./format";
 
 import { TIERS } from "./constants";

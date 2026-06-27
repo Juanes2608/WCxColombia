@@ -21,7 +21,7 @@ export function formatRatio(n: number): string {
 }
 
 export function formatMonths(n: number | null): string {
-  if (n === null) return "aún no";
+  if (n === null) return "not yet";
   if (!Number.isFinite(n)) return "—";
-  return `${n.toFixed(1)} meses`;
+  return `${n.toFixed(1)} months`;
 }

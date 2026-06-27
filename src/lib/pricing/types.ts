@@ -1,16 +1,16 @@
 // TraceIt pricing engine — types (single source of truth).
 // Every figure that reaches the UI is computed from these shapes.
 
-export type Provenance = "VERIFICADO" | "HIPOTESIS";
+export type Provenance = "VERIFIED" | "ASSUMPTION";
 
 /** A constant that carries its own provenance so the UI/chatbot can label it. */
 export interface Sourced<T> {
   value: T;
-  unit: string; // "GBP/mes", "scans/mes", "ratio", "%", "USD"
+  unit: string; // "GBP/mo", "scans/mo", "ratio", "%", "USD"
   provenance: Provenance;
-  source: string; // citation+URL, or "estimación interna"
+  source: string; // citation+URL, or "internal estimate"
   asOf: string; // ISO date "2026-06-27"
-  editable: boolean; // true for adjustable HIPOTESIS
+  editable: boolean; // true for adjustable ASSUMPTION
   note?: string;
 }
 
@@ -50,6 +50,30 @@ export interface SellerInputs {
   seats: number;
   scansPerSeatMonth: number;
   billingCycle: BillingCycle;
+}
+
+/**
+ * Raw calculator state in slider units (percentages as 0..100). Single source of
+ * truth for the sliders and the ONLY surface the LLM may write to. Maps to
+ * BuyerInputs/SellerInputs via the helpers in inputs.ts.
+ */
+export interface CalculatorInputs {
+  tier: TierId;
+  billingCycle: BillingCycle;
+  seats: number; // enterprise only; SMB tiers compute as 1 seat
+  filingsPerMonth: number; // per seat; also scans/seat/mo
+  hoursPerFiling: number;
+  blendedRate: number; // £/h
+  automationPct: number; // 20..100 (honesty knob)
+  valueRealizationPct: number; // 0..100 (saved hours that become £)
+}
+
+export interface NumericBound {
+  min: number;
+  max: number;
+  step: number;
+  label: string;
+  unit?: string;
 }
 
 export interface BuyerPerSeat {
@@ -103,6 +127,8 @@ export interface ScenarioSet<T> {
 export interface ModelSnapshot {
   asOf: string;
   tier: TierId;
+  inputs: CalculatorInputs; // current calculator state the LLM may adjust
+  bounds: Record<string, NumericBound>; // valid min/max/step per numeric input
   buyer: BuyerEconomics;
   seller: SellerEconomics;
   buyerScenarios: ScenarioSet<BuyerEconomics>;
