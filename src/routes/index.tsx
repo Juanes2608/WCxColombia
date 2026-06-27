@@ -117,13 +117,21 @@ function Demo() {
             misapplied, or verified, each with its source.
           </p>
         </div>
-        <div className="mt-10 flex aspect-video w-full items-center justify-center rounded-2xl border border-n300 bg-paper">
-          <div className="text-center">
-            <PlayCircle className="mx-auto h-14 w-14 text-ink-300" aria-hidden="true" />
-            <p className="mt-3 font-mono text-xs uppercase tracking-widest text-n500">
-              Walkthrough · 90s
-            </p>
-          </div>
+        <div className="mt-10 overflow-hidden rounded-2xl border border-n300 bg-ink-fixed shadow-xl shadow-ink/10">
+          <video
+            className="aspect-video w-full"
+            controls
+            preload="metadata"
+            playsInline
+            poster="/brand/og-cover.png"
+          >
+            <source src="/traceit.mp4" type="video/mp4" />
+            Your browser does not support embedded video. {""}
+            <a href="/traceit.mp4" className="underline">
+              Download the walkthrough
+            </a>
+            .
+          </video>
         </div>
         <p className="mt-6 text-center text-sm text-n500">
           Prefer to touch it?{" "}
