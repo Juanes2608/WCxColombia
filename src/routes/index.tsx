@@ -105,7 +105,10 @@ function Hero() {
 
 function Demo() {
   return (
-    <section id="demo" className="border-y border-white/10 bg-surface-fixed/50 backdrop-blur-2xl">
+    <section
+      id="demo"
+      className="border-y border-ink/10 bg-surface/80 backdrop-blur-2xl dark:bg-surface/50"
+    >
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
@@ -350,7 +353,10 @@ function Faq() {
     },
   ];
   return (
-    <section id="faq" className="border-t border-white/10 bg-surface-fixed/50 backdrop-blur-2xl">
+    <section
+      id="faq"
+      className="border-t border-ink/10 bg-surface/80 backdrop-blur-2xl dark:bg-surface/50"
+    >
       <div className="mx-auto max-w-3xl px-6 py-20">
         <h2 className="font-editorial text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           What the person who signs wants to know.

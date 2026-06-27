@@ -67,7 +67,7 @@ export function AppMock() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-accent-lime" aria-hidden="true" />
           <span className="font-display text-sm font-semibold text-paper-fixed">
-            Trace<span className="text-action">It</span>
+            Trace<span className="text-accent-lime">It</span>
           </span>
           <span className="font-mono text-[11px] text-paper-fixed/40">· matter a4f9…c21</span>
         </div>

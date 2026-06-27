@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState, type DragEvent } from "react";
-import { Loader2, UploadCloud, FileText, AlertCircle } from "lucide-react";
+import { UploadCloud, FileText, AlertCircle } from "lucide-react";
 import { Logo } from "@/components/citationguard/Logo";
+import { ProcessingOrbit } from "@/components/motion/ProcessingOrbit";
 import {
   verifyCitations,
   ApiError,
@@ -94,63 +95,57 @@ function Index() {
           exist, is it applied correctly, is it still good law?
         </p>
 
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="Upload a skeleton argument"
-          onClick={() => !scanning && inputRef.current?.click()}
-          onKeyDown={(e) => {
-            if ((e.key === "Enter" || e.key === " ") && !scanning) {
-              e.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-          className={`mt-10 flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ink ${
-            dragOver
-              ? "border-accent-lime bg-accent-lime/15"
-              : "border-n300 bg-surface hover:border-ink-300"
-          }`}
-        >
-          {scanning ? (
-            <>
-              <Loader2 className="h-8 w-8 animate-spin text-ink" aria-hidden="true" />
-              <p className="mt-4 font-display text-lg font-medium text-ink">
-                Scanning citations against the corpus&hellip;
-              </p>
-              <p className="mt-1 font-mono text-xs text-n500">
-                Deterministic lookup in progress
-              </p>
-            </>
-          ) : (
-            <>
-              <UploadCloud className="h-8 w-8 text-ink-300" aria-hidden="true" />
-              <p className="mt-4 font-display text-lg font-medium text-ink">
-                Drop a skeleton argument here
-              </p>
-              <p className="mt-1 text-sm text-n500">
-                PDF or TXT · max 20 MB · or{" "}
-                <span className="font-semibold text-ink underline">browse</span>
-              </p>
-            </>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf,.txt"
-            className="sr-only"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFile(file);
-              e.target.value = "";
-            }}
+        {scanning ? (
+          <ProcessingOrbit
+            className="mt-10 h-64 w-full"
+            label="Verifying every authority against the corpus…"
+            sublabel="Deterministic lookup in progress"
           />
-        </div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload a skeleton argument"
+            onClick={() => inputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            className={`mt-10 flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ink ${
+              dragOver
+                ? "border-accent-lime bg-accent-lime/15"
+                : "border-n300 bg-surface hover:border-ink-300"
+            }`}
+          >
+            <UploadCloud className="h-8 w-8 text-ink-300" aria-hidden="true" />
+            <p className="mt-4 font-display text-lg font-medium text-ink">
+              Drop a skeleton argument here
+            </p>
+            <p className="mt-1 text-sm text-n500">
+              PDF or TXT · max 20 MB · or{" "}
+              <span className="font-semibold text-ink underline">browse</span>
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.txt"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        )}
 
         {error && (
           <div

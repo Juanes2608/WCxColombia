@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { BACKGROUNDS } from "@/components/motion/backgrounds";
-import { AppMock } from "@/components/citationguard/AppMock";
+import { ProcessingOrbit } from "@/components/motion/ProcessingOrbit";
 
-// Internal playground to audition background animations live. Not linked from
-// the site — open /lab directly. Pick a background from the bottom bar; the
-// `key` remount restarts each animation cleanly so the comparison is fair.
+// Internal playground — open /lab directly (not linked from the site). Shows the
+// ProcessingOrbit "working" animation, and lets you audition each background
+// behind it via the bottom bar (the `key` remount restarts cleanly).
 
 export const Route = createFileRoute("/lab")({
   head: () => ({
@@ -27,20 +27,24 @@ function Lab() {
       <div className="relative z-10 mx-auto grid min-h-dvh max-w-6xl items-center gap-12 px-6 pb-44 pt-24 lg:grid-cols-2">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-action">
-            Citation integrity for the Bar
+            Processing animation
           </p>
-          <h1 className="mt-6 font-editorial text-5xl font-medium leading-[1.0] tracking-tight sm:text-6xl">
-            Because the AI invents.
+          <h1 className="mt-6 font-editorial text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl">
+            The corpus,
             <br />
-            <span className="mark-lime">The corpus doesn&rsquo;t.</span>
+            <span className="mark-lime">in motion.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-paper-fixed/55">
-            Upload a skeleton argument and TraceIt checks every authority against the real
-            corpus before it reaches the court: does it exist, is it applied correctly, is it
-            still good law?
+            The &ldquo;working&rdquo; animation — orbiting nodes around the TraceIt scan-frame —
+            shown wherever the app is processing: verifying a filing or loading a report. Pick a
+            background below to see it in context.
           </p>
         </div>
-        <AppMock />
+        <ProcessingOrbit
+          className="h-[360px] w-full"
+          label="Verifying every authority against the corpus…"
+          sublabel="Deterministic lookup in progress"
+        />
       </div>
 
       {/* Switcher */}

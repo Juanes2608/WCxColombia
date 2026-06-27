@@ -16,23 +16,23 @@ const NAV_LINKS = [
 export function Nav({ current }: { current?: "landing" | "pricing" | "about" }) {
   return (
     <header className="sticky top-0 z-50 border-b border-n300/70 bg-paper/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-3">
-        <Link to="/" aria-label="TraceIt home">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
+        <Link to="/" aria-label="TraceIt home" className="origin-left scale-[1.22]">
           <Logo variant="wordmark" />
         </Link>
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden items-center gap-7 lg:flex">
           {NAV_LINKS.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-n500 transition-colors hover:text-ink"
+              className="text-[15px] font-medium text-n500 transition-colors hover:text-ink"
             >
               {l.label}
             </a>
           ))}
           <Link
             to="/about"
-            className={`text-sm font-medium transition-colors hover:text-ink ${
+            className={`text-[15px] font-medium transition-colors hover:text-ink ${
               current === "about" ? "text-ink" : "text-n500"
             }`}
           >
@@ -40,7 +40,7 @@ export function Nav({ current }: { current?: "landing" | "pricing" | "about" }) 
           </Link>
           <Link
             to="/pricing"
-            className={`text-sm font-medium transition-colors hover:text-ink ${
+            className={`text-[15px] font-medium transition-colors hover:text-ink ${
               current === "pricing" ? "text-ink" : "text-n500"
             }`}
           >
@@ -51,13 +51,13 @@ export function Nav({ current }: { current?: "landing" | "pricing" | "about" }) 
           <ThemeToggle />
           <Link
             to="/signin"
-            className="hidden text-sm font-medium text-n500 transition-colors hover:text-ink sm:inline"
+            className="hidden text-[15px] font-medium text-n500 transition-colors hover:text-ink sm:inline"
           >
             Sign in
           </Link>
           <Link
             to="/scan"
-            className="inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-paper transition hover:bg-ink-700 active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-2.5 text-[15px] font-semibold text-paper transition hover:bg-ink-700 active:scale-[0.97]"
           >
             Try demo
           </Link>

@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Copy } from "lucide-react";
 import type { CitationResult, VerifyResult } from "@/lib/types";
 import { getReport } from "@/lib/api-client";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ProcessingOrbit } from "@/components/motion/ProcessingOrbit";
 import { ScopeBanner } from "@/components/citationguard/ScopeBanner";
 import { DegradedNotice } from "@/components/citationguard/DegradedNotice";
 import { SummaryCards } from "@/components/citationguard/SummaryCards";
@@ -77,8 +78,12 @@ function ResultsPage() {
 
   if (!result) {
     return (
-      <main className="relative flex min-h-dvh items-center justify-center">
-        <p className="font-mono text-sm text-n500">Loading report…</p>
+      <main className="relative flex min-h-dvh items-center justify-center px-6">
+        <ProcessingOrbit
+          className="h-80 w-full max-w-md"
+          label="Retrieving the report…"
+          sublabel="Reading the audit trail"
+        />
       </main>
     );
   }
