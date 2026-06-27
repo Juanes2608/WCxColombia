@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.api.deps import get_verify_service
 from app.domain.models import VerifyResult
-from app.services.verify_service import VerifyService
+from app.services.verify_service import VerifyService, get_stored_result
 
 router = APIRouter(prefix="/api", tags=["verify"])
 
@@ -41,4 +41,26 @@ def verify_document(
 
     result = service.run(content, file.filename)
     result.processing_ms = int((time.monotonic() - start) * 1000)
+    return result
+
+
+@router.get(
+    "/report/{matter_id}",
+    response_model=VerifyResult,
+    summary="Retrieve a previously computed verification report",
+)
+def get_report(matter_id: str) -> VerifyResult:
+    """
+    Retrieve the full citation verification report for a prior /verify call.
+
+    The `matter_id` is returned in every /verify response.
+    Reports are held in memory for the lifetime of the server process (last 100).
+    """
+    result = get_stored_result(matter_id)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No report found for matter_id '{matter_id}'. "
+                   "Reports expire when the server restarts.",
+        )
     return result

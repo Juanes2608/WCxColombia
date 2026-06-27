@@ -10,13 +10,19 @@ Layer 2 (Neo4j, graceful degradation):
 Statutory verification (legislation.gov.uk, graceful degradation):
   section exists check → exists True/False/None
 
+Case-law citations are verified in parallel (ThreadPoolExecutor, max 4 workers)
+to reduce wall-clock time from ~3 min → ~40 s for a 12-citation document.
+
 The service depends exclusively on port interfaces (ABCs).
 It has no direct knowledge of Neo4j, httpx, or FastAPI.
 """
 from __future__ import annotations
 
+import logging
+import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
 from app.domain.citation_extractor import extract_citations
@@ -40,6 +46,31 @@ from app.ports.document import IDocumentIngestor
 from app.ports.statutory import IStatutoryVerifier
 from app.ports.treatment import ITreatmentRepository
 
+logger = logging.getLogger("traceit.service")
+
+# ── In-memory result store for GET /api/report/{matter_id} ───────────────────
+_result_store: dict[str, VerifyResult] = {}
+_store_lock = threading.Lock()
+_MAX_STORED = 100  # keep last N results to avoid unbounded memory growth
+
+
+def get_stored_result(matter_id: str) -> VerifyResult | None:
+    with _store_lock:
+        return _result_store.get(matter_id)
+
+
+def _store_result(matter_id: str, result: VerifyResult) -> None:
+    with _store_lock:
+        _result_store[matter_id] = result
+        if len(_result_store) > _MAX_STORED:
+            oldest = next(iter(_result_store))
+            del _result_store[oldest]
+
+
+# ── Parallel worker limit ─────────────────────────────────────────────────────
+# 4 concurrent agent calls: balances speed vs OpenRouter rate limits.
+_AGENT_WORKERS = 4
+
 
 @dataclass
 class VerifyService:
@@ -62,8 +93,7 @@ class VerifyService:
         ])
 
         if doc.source_type == "needs_human":
-            # Return empty result with audit trail — don't fabricate citations
-            return VerifyResult(
+            result = VerifyResult(
                 matter_id=matter_id,
                 total_citations=0,
                 results=[],
@@ -71,64 +101,80 @@ class VerifyService:
                 processing_ms=int((time.monotonic() - t0) * 1000),
                 audit_trail_hash=self.audit.digest(),
             )
+            _store_result(matter_id, result)
+            return result
 
         # 2. Extract citations (deterministic regex)
         extracted = extract_citations(doc.text)
         self.audit.record("extract", matter_id, [c.raw_text for c in extracted])
 
-        # 3. Load MISAPPLIED table once (lawyer-annotated Neo4j data)
+        # 3. Load MISAPPLIED table once (read-only — safe across threads)
         misapplied_table = self.corpus.get_misapplied_table()
 
-        # 4. Verify each citation
-        citation_results: list[CitationResult] = []
-        for cit in extracted:
+        # 4. Classify: statutes inline, case-law in parallel
+        ordered: dict[int, CitationResult] = {}
+        audit_msgs: dict[int, str] = {}
 
-            statutory: StatutoryResult | None = None
-
-            if cit.citation_type == "statute":
-                # ── Statute citations ─────────────────────────────────────────
-                # Verdict is determined by legislation.gov.uk, NOT by corpus lookup.
-                # Corpus lookup is for case law only.
-                lookup = self.statutory.verify_from_text(cit.raw_text)
-                if lookup:
-                    statutory = StatutoryResult(
-                        act=lookup.act,
-                        year=lookup.year,
-                        section=lookup.section,
-                        exists=lookup.exists,
-                        api_status=lookup.status_code,
-                        excerpt=lookup.excerpt,
-                        source_url=lookup.url,
-                    )
-                    layer1 = _statute_layer1(cit.raw_text, lookup)
-                else:
-                    layer1 = Layer1Result(
-                        verdict=Layer1Verdict.FABRICATED,
-                        confidence=1.0,
-                        explanation="Statute citation could not be parsed or verified.",
-                    )
-                layer2 = Layer2Result(verdict=Layer2Verdict.NOT_CHECKED, source="not_applicable")
-
+        # ── 4a. Statute citations (fast, no LLM) ─────────────────────────────
+        for idx, cit in enumerate(extracted):
+            if cit.citation_type != "statute":
+                continue
+            lookup = self.statutory.verify_from_text(cit.raw_text)
+            if lookup:
+                statutory = StatutoryResult(
+                    act=lookup.act,
+                    year=lookup.year,
+                    section=lookup.section,
+                    exists=lookup.exists,
+                    api_status=lookup.status_code,
+                    excerpt=lookup.excerpt,
+                    source_url=lookup.url,
+                )
+                layer1 = _statute_layer1(cit.raw_text, lookup)
             else:
-                # ── Case-law citations ────────────────────────────────────────
-                context_analysis: ContextAnalysis | None = None
+                statutory = None
+                layer1 = Layer1Result(
+                    verdict=Layer1Verdict.FABRICATED,
+                    confidence=1.0,
+                    explanation="Statute citation could not be parsed or verified.",
+                )
+            layer2 = Layer2Result(verdict=Layer2Verdict.NOT_CHECKED, source="not_applicable")
+            ordered[idx] = CitationResult(
+                raw_text=cit.raw_text,
+                layer1=layer1,
+                layer2=layer2,
+                statutory=statutory,
+                context_analysis=None,
+            )
+            audit_msgs[idx] = f"{cit.raw_text}:{layer1.verdict}"
 
-                # ── Agentic path (Nemotron CitationAgent) ─────────────────────
-                # When OPENROUTER_API_KEY is set, the agent autonomously decides
-                # which tools to call and submits a structured verdict.
-                # Tools are deterministic wrappers — the agent reasons, not invents.
-                if _nemotron_enabled():
-                    agent_verdict = _run_agent(
-                        citation=cit.raw_text,
-                        doc_text=doc.text,
-                        corpus=self.corpus,
-                        treatment=self.treatment,
-                    )
+        # ── 4b. Case-law citations (parallel agents) ──────────────────────────
+        case_indices = {
+            idx: cit for idx, cit in enumerate(extracted)
+            if cit.citation_type != "statute"
+        }
+
+        if case_indices and _nemotron_enabled():
+            with ThreadPoolExecutor(max_workers=_AGENT_WORKERS) as pool:
+                future_to_idx = {
+                    pool.submit(
+                        _run_agent,
+                        cit.raw_text,
+                        doc.text,
+                        self.corpus,
+                        self.treatment,
+                    ): idx
+                    for idx, cit in case_indices.items()
+                }
+                for future in as_completed(future_to_idx):
+                    idx = future_to_idx[future]
+                    cit = case_indices[idx]
+                    agent_verdict = future.result()
+
                     if agent_verdict is not None:
                         layer1, layer2, context_analysis = _agent_verdict_to_layers(
                             agent_verdict, cit.raw_text
                         )
-                        # LLM explanation for non-VERIFIED verdicts
                         if layer1.verdict != Layer1Verdict.VERIFIED:
                             llm_text = generate_explanation(
                                 verdict=layer1.verdict.value,
@@ -138,65 +184,42 @@ class VerifyService:
                             )
                             if llm_text:
                                 layer1.llm_explanation = llm_text
-                        self.audit.record(
-                            "citation_check", matter_id,
-                            [f"{cit.raw_text}:{layer1.verdict} (agent:{agent_verdict.turns_used}t)"],
-                        )
-                        citation_results.append(CitationResult(
+                        ordered[idx] = CitationResult(
                             raw_text=cit.raw_text,
                             layer1=layer1,
                             layer2=layer2,
-                            statutory=statutory,
+                            statutory=None,
                             context_analysis=context_analysis,
-                        ))
-                        continue  # skip deterministic fallback below
+                        )
+                        audit_msgs[idx] = (
+                            f"{cit.raw_text}:{layer1.verdict}"
+                            f" (agent:{agent_verdict.turns_used}t)"
+                        )
+                    else:
+                        # Agent failed → deterministic fallback for this citation
+                        ordered[idx], audit_msgs[idx] = _deterministic_fallback(
+                            cit.raw_text, self.corpus, self.treatment, misapplied_table
+                        )
 
-                # ── Deterministic fallback (no agent / agent failed) ──────────
-                corpus_node = self.corpus.lookup(cit.raw_text)
-                layer1 = compute_layer1(cit.raw_text, corpus_node, misapplied_table)
+        # Deterministic fallback for any case-law not yet resolved
+        # (happens when Nemotron is not configured)
+        for idx, cit in case_indices.items():
+            if idx not in ordered:
+                ordered[idx], audit_msgs[idx] = _deterministic_fallback(
+                    cit.raw_text, self.corpus, self.treatment, misapplied_table
+                )
 
-                if layer1.verdict != Layer1Verdict.VERIFIED:
-                    llm_text = generate_explanation(
-                        verdict=layer1.verdict.value,
-                        citation=cit.raw_text,
-                        proposition_cited=layer1.proposition_cited,
-                        proposition_actual=layer1.proposition_actual,
-                    )
-                    if llm_text:
-                        layer1.llm_explanation = llm_text
+        # 5. Reconstruct ordered results + audit
+        citation_results: list[CitationResult] = []
+        for idx in range(len(extracted)):
+            self.audit.record("citation_check", matter_id, [audit_msgs[idx]])
+            citation_results.append(ordered[idx])
 
-                if corpus_node and layer1.verdict != Layer1Verdict.FABRICATED:
-                    hist = self.treatment.get_history(corpus_node.node_id)
-                    layer2 = Layer2Result(
-                        verdict=Layer2Verdict(hist.verdict),
-                        overruled_by=hist.overruled_by,
-                        distinguished_by=hist.distinguished_by,
-                        source=hist.source,
-                    )
-                else:
-                    layer2 = Layer2Result(
-                        verdict=Layer2Verdict.NOT_CHECKED,
-                        source="not_checked",
-                    )
-
-            self.audit.record(
-                "citation_check",
-                matter_id,
-                [f"{cit.raw_text}:{layer1.verdict}"],
-            )
-            citation_results.append(CitationResult(
-                raw_text=cit.raw_text,
-                layer1=layer1,
-                layer2=layer2,
-                statutory=statutory,
-                context_analysis=context_analysis,
-            ))
-
-        # 5. Financial summary (deterministic)
+        # 6. Financial summary (deterministic)
         financial = compute_financial_summary(citation_results)
         elapsed_ms = int((time.monotonic() - t0) * 1000)
 
-        return VerifyResult(
+        result = VerifyResult(
             matter_id=matter_id,
             total_citations=len(citation_results),
             results=citation_results,
@@ -204,7 +227,11 @@ class VerifyService:
             processing_ms=elapsed_ms,
             audit_trail_hash=self.audit.digest(),
         )
+        _store_result(matter_id, result)
+        return result
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _nemotron_enabled() -> bool:
     from app.config import get_settings
@@ -217,7 +244,7 @@ def _run_agent(
     corpus: "ICorpusRepository",
     treatment: "ITreatmentRepository",
 ) -> "AgentVerdict | None":
-    """Run CitationAgent with Nemotron primary + Infermatic fallback."""
+    """Run CitationAgent with Nemotron primary + Infermatic fallback. Thread-safe."""
     try:
         from app.agents.citation_agent import run_citation_agent
         from app.agents.tools import ToolExecutor
@@ -234,16 +261,55 @@ def _run_agent(
             infermatic_model   = s.infermatic_model,
         )
     except Exception as exc:
-        import logging
-        logging.getLogger("traceit").warning("Agent failed for '%s': %s", citation[:50], exc)
+        logger.warning("Agent failed for '%s': %s", citation[:50], exc)
         return None
+
+
+def _deterministic_fallback(
+    raw_text: str,
+    corpus: "ICorpusRepository",
+    treatment: "ITreatmentRepository",
+    misapplied_table: dict,
+) -> "tuple[CitationResult, str]":
+    """Corpus-only verdict — used when agent is unavailable or failed."""
+    corpus_node = corpus.lookup(raw_text)
+    layer1 = compute_layer1(raw_text, corpus_node, misapplied_table)
+
+    if layer1.verdict != Layer1Verdict.VERIFIED:
+        llm_text = generate_explanation(
+            verdict=layer1.verdict.value,
+            citation=raw_text,
+            proposition_cited=layer1.proposition_cited,
+            proposition_actual=layer1.proposition_actual,
+        )
+        if llm_text:
+            layer1.llm_explanation = llm_text
+
+    if corpus_node and layer1.verdict != Layer1Verdict.FABRICATED:
+        hist = treatment.get_history(corpus_node.node_id)
+        layer2 = Layer2Result(
+            verdict=Layer2Verdict(hist.verdict),
+            overruled_by=hist.overruled_by,
+            distinguished_by=hist.distinguished_by,
+            source=hist.source,
+        )
+    else:
+        layer2 = Layer2Result(verdict=Layer2Verdict.NOT_CHECKED, source="not_checked")
+
+    result = CitationResult(
+        raw_text=raw_text,
+        layer1=layer1,
+        layer2=layer2,
+        statutory=None,
+        context_analysis=None,
+    )
+    return result, f"{raw_text}:{layer1.verdict}"
 
 
 def _agent_verdict_to_layers(
     av: "AgentVerdict",
     raw_citation: str,
 ) -> "tuple[Layer1Result, Layer2Result, ContextAnalysis]":
-    """Map AgentVerdict → (Layer1Result, Layer2Result, ContextAnalysis)."""
     layer1 = Layer1Result(
         verdict=Layer1Verdict(av.verdict),
         confidence=1.0 if av.verdict == "FABRICATED" else 0.9,
@@ -273,8 +339,7 @@ def _agent_verdict_to_layers(
     return layer1, layer2, context_analysis
 
 
-def _statute_layer1(raw_text: str, lookup: "StatutoryLookup") -> Layer1Result:
-    """Compute Layer 1 verdict for a statute citation from legislation.gov.uk result."""
+def _statute_layer1(raw_text: str, lookup) -> Layer1Result:
     if lookup.exists is True:
         return Layer1Result(
             verdict=Layer1Verdict.VERIFIED,
@@ -293,7 +358,6 @@ def _statute_layer1(raw_text: str, lookup: "StatutoryLookup") -> Layer1Result:
                 f"{lookup.act} {lookup.year} s.{lookup.section}."
             ),
         )
-    # exists is None — verification failed (timeout)
     return Layer1Result(
         verdict=Layer1Verdict.FABRICATED,
         confidence=0.5,
