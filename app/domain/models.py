@@ -74,12 +74,53 @@ class ContextAnalysis(BaseModel):
 class CorpusSource(BaseModel):
     """The verified corpus record matched to this citation — shown as provenance in the UI."""
     node_id: str
-    citation: str           # canonical full citation from corpus
-    short_name: str         # display name (e.g. "Anglia Television v Reed")
+    citation: str
+    short_name: str
     court: str | None = None
     domain: str | None = None
-    bailii_url: str | None = None   # direct link to the judgment on BAILII
+    bailii_url: str | None = None
     status: str             # GOOD_LAW | OVERRULED | PARTIALLY_OVERRULED
+    key_paragraph: str | None = None  # verbatim excerpt from the judgment
+
+
+class TransparencyCard(BaseModel):
+    """Model card for the Proof Panel — explains how the verdict was reached."""
+    method: str             # human-readable description of the verification method
+    verdict_source: str     # "Deterministic corpus lookup" | "Agent (Nemotron Super + tools)"
+    corpus_size: int
+    limitations: list[str]
+
+
+class ProofPanel(BaseModel):
+    """
+    Full proof package for a single citation — used by the split-screen Proof Panel UI.
+
+    Returned by GET /api/proof/{matter_id}/{idx}.
+    The frontend displays this when the user clicks a citation in the results list.
+    """
+    matter_id: str
+    citation_index: int
+    raw_citation: str
+
+    verdict: str            # FABRICATED | MISAPPLIED | VERIFIED
+    confidence: float
+
+    # Side-by-side comparison
+    document_claim: str | None      # what the brief says this case establishes
+    corpus_proposition: str | None  # what the case actually establishes (one-line summary)
+    key_paragraph: str | None       # verbatim excerpt from the judgment
+
+    # Good-law status
+    good_law_status: str            # GOOD_LAW | OVERRULED | DISTINGUISHED | UNAVAILABLE | NOT_CHECKED
+    overruled_by: list[TreatmentEdge] = []
+    distinguished_by: list[TreatmentEdge] = []
+
+    # Links and plain-English explanation
+    bailii_url: str | None = None
+    llm_explanation: str | None = None
+    static_explanation: str = ""
+
+    transparency: TransparencyCard
 
 
 class CitationResult(BaseModel):

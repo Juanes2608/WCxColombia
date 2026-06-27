@@ -62,6 +62,7 @@ def _load_cases(path: Path) -> dict[str, CaseNode]:
                     if p.strip()
                 ]
                 bailii = row.get("bailii_url", "").strip() or None
+                key_para = row.get("key_paragraph", "").strip() or None
                 nodes[node_id] = CaseNode(
                     node_id=node_id,
                     citation=citation,
@@ -71,6 +72,7 @@ def _load_cases(path: Path) -> dict[str, CaseNode]:
                     status=row.get("status", "GOOD_LAW").strip(),
                     court=row.get("court", "").strip() or None,
                     bailii_url=bailii,
+                    key_paragraph=key_para,
                 )
         logger.info("LocalCorpusAdapter: loaded %d verified cases", len(nodes))
     except FileNotFoundError:

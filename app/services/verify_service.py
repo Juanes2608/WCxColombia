@@ -365,6 +365,7 @@ def _node_to_source(node) -> "CorpusSource | None":
         domain=node.domain,
         bailii_url=node.bailii_url or None,
         status=node.status,
+        key_paragraph=node.key_paragraph or None,
     )
 
 

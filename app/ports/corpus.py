@@ -12,8 +12,9 @@ class CaseNode:
     domain: str
     propositions: list[str]
     status: str           # "GOOD_LAW" | "OVERRULED" | "PARTIALLY_OVERRULED"
-    court: str | None = None      # "UKHL" | "UKSC" | "EWCA" | "EWHC" | …
-    bailii_url: str | None = None # direct link to the judgment on BAILII
+    court: str | None = None
+    bailii_url: str | None = None
+    key_paragraph: str | None = None  # verbatim excerpt from the judgment
 
 
 class ICorpusRepository(ABC):
