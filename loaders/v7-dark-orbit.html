@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TraceIT — V7 Dark Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--black:#14181A;--lime:#C6F035;--paper:#F6F7F2;--muted:#5A625F;
+    --mono:'JetBrains Mono',monospace;--disp:'Space Grotesk',system-ui,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:var(--black);overflow:hidden}
+  #c{position:fixed;inset:0}
+  #brand{position:fixed;top:30px;left:0;right:0;text-align:center;z-index:5;pointer-events:none}
+  #brand .w{font-family:var(--disp);font-weight:600;font-size:24px;color:var(--paper)}
+  #brand .m{width:42px;height:5px;background:var(--lime);margin:7px auto 0;border-radius:2px;box-shadow:0 0 12px rgba(198,240,53,.6)}
+  #foot{position:fixed;bottom:32px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:#aeb6a8}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="brand"><div class="w">TraceIT</div><div class="m"></div></div>
+<div id="foot">Verificando autoridades…</div>
+<script>
+(function(){
+  const cv=document.getElementById('c'),x=cv.getContext('2d');let W,H,DPR,cx,cy,glow;
+  function mkGlow(){const s=64,g=document.createElement('canvas');g.width=g.height=s;const c=g.getContext('2d'),r=c.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    r.addColorStop(0,'rgba(198,240,53,.9)');r.addColorStop(.3,'rgba(198,240,53,.3)');r.addColorStop(1,'rgba(198,240,53,0)');c.fillStyle=r;c.fillRect(0,0,s,s);return g}
+  function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(DPR,0,0,DPR,0,0);cx=W/2;cy=H/2+4}
+  const RINGS=[{n:6,r:.18,sp:.22},{n:10,r:.30,sp:-.14},{n:8,r:.42,sp:.09}];let t0=performance.now();
+  function frame(now){const t=(now-t0)/1000;x.clearRect(0,0,W,H);x.fillStyle='#14181A';x.fillRect(0,0,W,H);
+    const vg=x.createRadialGradient(cx,cy,60,cx,cy,Math.max(W,H)*.7);vg.addColorStop(0,'rgba(22,28,31,0)');vg.addColorStop(1,'rgba(9,11,12,.92)');x.fillStyle=vg;x.fillRect(0,0,W,H);
+    const base=Math.min(W,H);const pts=[];
+    RINGS.forEach((ring,ri)=>{const rad=base*ring.r;
+      // anillo guía
+      x.strokeStyle='rgba(198,240,53,.06)';x.lineWidth=1;x.beginPath();x.arc(cx,cy,rad,0,6.283);x.stroke();
+      for(let i=0;i<ring.n;i++){const a=t*ring.sp+i*(6.283/ring.n);const px=cx+Math.cos(a)*rad,py=cy+Math.sin(a)*rad;
+        const pulse=.5+.5*Math.sin(t*2+i+ri);pts.push({px,py,pulse})}});
+    // conexiones cercanas
+    x.globalCompositeOperation='lighter';
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const d=Math.hypot(pts[i].px-pts[j].px,pts[i].py-pts[j].py);
+      if(d<base*.16){x.strokeStyle='rgba(198,240,53,'+((1-d/(base*.16))*.14).toFixed(3)+')';x.lineWidth=.7;x.beginPath();x.moveTo(pts[i].px,pts[i].py);x.lineTo(pts[j].px,pts[j].py);x.stroke()}}
+    for(const p of pts){const gs=8+p.pulse*6;x.globalAlpha=.5;x.drawImage(glow,p.px-gs,p.py-gs,gs*2,gs*2);x.globalAlpha=1;
+      x.fillStyle='rgba(220,245,160,'+(.6+p.pulse*.4).toFixed(2)+')';x.beginPath();x.arc(p.px,p.py,2+p.pulse*1.4,0,6.283);x.fill()}
+    x.globalCompositeOperation='source-over';chip(now);requestAnimationFrame(frame)}
+  function chip(now){const w=58,h=44,xx=cx-w/2,yy=cy-h/2;x.fillStyle='#1b2122';rr(xx,yy,w,h,12);x.fill();
+    x.strokeStyle='rgba(198,240,53,.22)';x.lineWidth=1;x.stroke();const sy=yy+6+(Math.sin(now/600)*.5+.5)*(h-12);
+    x.save();rr(xx,yy,w,h,12);x.clip();const lg=x.createLinearGradient(0,sy-7,0,sy+7);lg.addColorStop(0,'rgba(198,240,53,0)');lg.addColorStop(.5,'rgba(198,240,53,.5)');lg.addColorStop(1,'rgba(198,240,53,0)');x.fillStyle=lg;x.fillRect(xx,sy-7,w,14);x.restore();
+    x.strokeStyle='#C6F035';x.lineWidth=2;x.lineCap='round';const ox=xx-7,oy=yy-7,ww=w+14,hh=h+14,c=11;
+    cor(ox,oy,1,1,c);cor(ox+ww,oy,-1,1,c);cor(ox,oy+hh,1,-1,c);cor(ox+ww,oy+hh,-1,-1,c);
+    x.globalCompositeOperation='lighter';x.globalAlpha=.5;x.drawImage(glow,cx-46,cy-46,92,92);x.globalAlpha=1;x.globalCompositeOperation='source-over'}
+  function cor(px,py,sx,sy,c){x.beginPath();x.moveTo(px+sx*c,py);x.lineTo(px,py);x.lineTo(px,py+sy*c);x.stroke()}
+  function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+  addEventListener('resize',resize);glow=mkGlow();resize();requestAnimationFrame(frame);
+})();
+</script></body></html>

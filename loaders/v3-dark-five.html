@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TraceIT — V3 Dark Five</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--black:#14181A;--lime:#C6F035;--paper:#F6F7F2;--graphite:#5A625F;
+    --mono:'JetBrains Mono',monospace;--disp:'Space Grotesk',system-ui,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--black);overflow:hidden}
+  #c{position:fixed;inset:0}
+  #brand{position:fixed;top:30px;left:0;right:0;text-align:center;z-index:5;pointer-events:none}
+  #brand .w{font-family:var(--disp);font-weight:600;font-size:24px;color:var(--paper)}
+  #brand .m{width:42px;height:5px;background:var(--lime);margin:7px auto 0;border-radius:2px;box-shadow:0 0 12px rgba(198,240,53,.6)}
+  #foot{position:fixed;bottom:32px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:#aeb6a8}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="brand"><div class="w">TraceIT</div><div class="m"></div></div>
+<div id="foot" id="st">Trazando referencias…</div>
+<script>
+(function(){
+  const cv=document.getElementById('c'),x=cv.getContext('2d');let W,H,DPR,cx,cy,glow;
+  function mkGlow(){const s=64,g=document.createElement('canvas');g.width=g.height=s;const c=g.getContext('2d'),r=c.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    r.addColorStop(0,'rgba(198,240,53,.9)');r.addColorStop(.3,'rgba(198,240,53,.3)');r.addColorStop(1,'rgba(198,240,53,0)');c.fillStyle=r;c.fillRect(0,0,s,s);return g}
+  function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(DPR,0,0,DPR,0,0);cx=W/2;cy=H/2+4}
+  const labels=['§ 1','§ 2','§ 3','§ 4','§ 5'];
+  let sats=[];function build(){sats=[];const R=Math.min(W,H)*.30;
+    for(let i=0;i<5;i++){const a=-Math.PI/2+i*(2*Math.PI/5);sats.push({a,R,lab:labels[i],app:.5+i*.55})}}
+  const CY=5.0;let t0=performance.now(); // ciclo de 5s
+  function ease(p){p=Math.min(1,Math.max(0,p));return p*p*(3-2*p)}
+  function frame(now){let t=((now-t0)/1000)%CY;x.clearRect(0,0,W,H);
+    x.fillStyle='#14181A';x.fillRect(0,0,W,H);
+    const vg=x.createRadialGradient(cx,cy,60,cx,cy,Math.max(W,H)*.65);vg.addColorStop(0,'rgba(22,28,31,0)');vg.addColorStop(1,'rgba(9,11,12,.92)');x.fillStyle=vg;x.fillRect(0,0,W,H);
+    const breathe=Math.sin(now/700)*2;
+    // lineas + satelites
+    for(const s of sats){const p=ease((t-s.app)/.6);if(p<=0)continue;
+      const sx=cx+Math.cos(s.a)*(s.R+breathe),sy=cy+Math.sin(s.a)*(s.R+breathe);
+      const ex=cx+(sx-cx)*p,ey=cy+(sy-cy)*p;
+      x.globalCompositeOperation='lighter';
+      x.strokeStyle='rgba(198,240,53,'+(.5*p).toFixed(2)+')';x.lineWidth=1.4;
+      x.beginPath();x.moveTo(cx,cy);x.lineTo(ex,ey);x.stroke();
+      if(p>.85){const gs=16;x.globalAlpha=.7;x.drawImage(glow,sx-gs,sy-gs,gs*2,gs*2);x.globalAlpha=1;
+        x.fillStyle='#dff5a0';x.beginPath();x.arc(sx,sy,4.5,0,6.283);x.fill();
+        x.globalCompositeOperation='source-over';x.fillStyle='rgba(174,182,168,.9)';x.font='11px JetBrains Mono, monospace';x.textAlign='center';x.fillText(s.lab,sx,sy-12)}
+      x.globalCompositeOperation='source-over'}
+    chip(now);requestAnimationFrame(frame)}
+  function chip(now){const w=58,h=44,xx=cx-w/2,yy=cy-h/2;x.fillStyle='#1b2122';rr(xx,yy,w,h,12);x.fill();
+    x.strokeStyle='rgba(198,240,53,.22)';x.lineWidth=1;x.stroke();const sy=yy+6+(Math.sin(now/600)*.5+.5)*(h-12);
+    x.save();rr(xx,yy,w,h,12);x.clip();const lg=x.createLinearGradient(0,sy-7,0,sy+7);lg.addColorStop(0,'rgba(198,240,53,0)');lg.addColorStop(.5,'rgba(198,240,53,.5)');lg.addColorStop(1,'rgba(198,240,53,0)');x.fillStyle=lg;x.fillRect(xx,sy-7,w,14);x.restore();
+    x.strokeStyle='#C6F035';x.lineWidth=2;x.lineCap='round';const ox=xx-7,oy=yy-7,ww=w+14,hh=h+14,c=11;
+    cor(ox,oy,1,1,c);cor(ox+ww,oy,-1,1,c);cor(ox,oy+hh,1,-1,c);cor(ox+ww,oy+hh,-1,-1,c);
+    x.globalCompositeOperation='lighter';x.globalAlpha=.45;x.drawImage(glow,cx-46,cy-46,92,92);x.globalAlpha=1;x.globalCompositeOperation='source-over'}
+  function cor(px,py,sx,sy,c){x.beginPath();x.moveTo(px+sx*c,py);x.lineTo(px,py);x.lineTo(px,py+sy*c);x.stroke()}
+  function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+  addEventListener('resize',()=>{resize();build()});glow=mkGlow();resize();build();requestAnimationFrame(frame);
+})();
+</script></body></html>

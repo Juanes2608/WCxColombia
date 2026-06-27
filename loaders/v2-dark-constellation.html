@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TraceIT — V2 Dark Constellation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--black:#14181A;--lime:#C6F035;--paper:#F6F7F2;--graphite:#5A625F;
+    --mono:'JetBrains Mono',monospace;--disp:'Space Grotesk',system-ui,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--black);overflow:hidden}
+  #c{position:fixed;inset:0}
+  #brand{position:fixed;top:28px;left:0;right:0;text-align:center;z-index:5;pointer-events:none}
+  #brand .w{font-family:var(--disp);font-weight:600;font-size:24px;color:var(--paper);letter-spacing:.02em}
+  #brand .m{width:42px;height:5px;background:var(--lime);margin:7px auto 0;border-radius:2px;box-shadow:0 0 12px rgba(198,240,53,.6)}
+  #foot{position:fixed;bottom:30px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:#aeb6a8}
+  #foot b{color:var(--lime);font-weight:500}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="brand"><div class="w">TraceIT</div><div class="m"></div></div>
+<div id="foot"><span id="st">Escaneando el corpus</span><b id="dots">…</b></div>
+<script>
+(function(){
+  const cv=document.getElementById('c'),x=cv.getContext('2d');
+  let W,H,DPR,cx,cy,glow,grid;
+  function mkGlow(){const s=64,g=document.createElement('canvas');g.width=g.height=s;const c=g.getContext('2d'),r=c.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    r.addColorStop(0,'rgba(198,240,53,.9)');r.addColorStop(.25,'rgba(198,240,53,.32)');r.addColorStop(1,'rgba(198,240,53,0)');c.fillStyle=r;c.fillRect(0,0,s,s);return g}
+  function mkGrid(){const g=document.createElement('canvas');g.width=W*DPR;g.height=H*DPR;const c=g.getContext('2d');c.scale(DPR,DPR);
+    c.fillStyle='rgba(198,240,53,.045)';for(let i=0;i<W;i+=34)for(let j=0;j<H;j+=34)c.fillRect(i,j,1,1);grid=g}
+  const N=46;let nodes=[];
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  function spawn(i){const a=rnd(0,6.283),rad=rnd(90,Math.min(W,H)*.46);
+    return{a0:a,rad,amp:rnd(6,16),fr:rnd(.25,.7),ph:rnd(0,6.283),r:rnd(1.4,3.1),dim:Math.random()<.45,pulse:0,app:i*.04+rnd(0,.05),refresh:rnd(7,16),x:0,y:0}}
+  function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';x.setTransform(DPR,0,0,DPR,0,0);cx=W/2;cy=H/2+4;mkGrid()}
+  const ROT=.03,SWP=.6,LK=130;let t0=performance.now();
+  const ad=(a,b)=>{let d=Math.abs(a-b)%6.283;return d>3.1416?6.283-d:d};
+  function frame(now){const t=(now-t0)/1000;x.clearRect(0,0,W,H);
+    x.fillStyle='#14181A';x.fillRect(0,0,W,H);if(grid)x.drawImage(grid,0,0,W,H);
+    const vg=x.createRadialGradient(cx,cy,80,cx,cy,Math.max(W,H)*.7);vg.addColorStop(0,'rgba(20,24,26,0)');vg.addColorStop(1,'rgba(8,10,11,.9)');x.fillStyle=vg;x.fillRect(0,0,W,H);
+    for(const n of nodes){let g=Math.min(1,Math.max(0,(t-n.app)/.6));n.g=g*g*(3-2*g);const an=n.a0+t*ROT;
+      n.x=cx+Math.cos(an)*n.rad+Math.cos(t*n.fr+n.ph)*n.amp;n.y=cy+Math.sin(an)*n.rad+Math.sin(t*n.fr*1.1+n.ph)*n.amp;n.pulse*=.94;
+      if(t>n.refresh){const s=spawn(0);s.app=t;s.refresh=t+rnd(7,15);Object.assign(n,s)}}
+    const sw=(t*SWP)%6.283;for(const n of nodes){if(ad(Math.atan2(n.y-cy,n.x-cx),sw)<.05)n.pulse=1}
+    x.globalCompositeOperation='lighter';
+    for(let i=0;i<N;i++){const a=nodes[i];if(a.g<.05)continue;for(let j=i+1;j<N;j++){const b=nodes[j];if(b.g<.05)continue;
+      const dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy);if(d<LK){const al=(1-d/LK)*.16*a.g*b.g+.04*Math.max(a.pulse,b.pulse);
+        x.strokeStyle='rgba(198,240,53,'+al.toFixed(3)+')';x.lineWidth=.8;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}}
+    x.strokeStyle='rgba(198,240,53,.10)';x.lineWidth=1;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(sw)*Math.max(W,H),cy+Math.sin(sw)*Math.max(W,H));x.stroke();
+    for(const n of nodes){if(n.g<.02)continue;const a=( (n.dim?.5:.95)+n.pulse*.8)*n.g,gs=(n.r*(5+n.pulse*7))*n.g;
+      x.globalAlpha=Math.min(1,a*.6);x.drawImage(glow,n.x-gs,n.y-gs,gs*2,gs*2);x.globalAlpha=Math.min(1,a);
+      x.fillStyle=n.dim?'rgba(150,170,120,'+a.toFixed(2)+')':'rgba(220,245,160,'+a.toFixed(2)+')';x.beginPath();x.arc(n.x,n.y,(n.r+n.pulse*1.6)*n.g,0,6.283);x.fill()}
+    x.globalAlpha=1;x.globalCompositeOperation='source-over';chip(t);requestAnimationFrame(frame)}
+  function chip(t){const w=56,h=42,xx=cx-w/2,yy=cy-h/2;x.fillStyle='#1b2122';rr(xx,yy,w,h,12);x.fill();
+    x.strokeStyle='rgba(198,240,53,.22)';x.lineWidth=1;x.stroke();const sy=yy+6+(Math.sin(t*1.6)*.5+.5)*(h-12);
+    x.save();rr(xx,yy,w,h,12);x.clip();const lg=x.createLinearGradient(0,sy-7,0,sy+7);lg.addColorStop(0,'rgba(198,240,53,0)');lg.addColorStop(.5,'rgba(198,240,53,.55)');lg.addColorStop(1,'rgba(198,240,53,0)');x.fillStyle=lg;x.fillRect(xx,sy-7,w,14);x.restore();
+    x.strokeStyle='#C6F035';x.lineWidth=2;x.lineCap='round';const ox=xx-7,oy=yy-7,ww=w+14,hh=h+14,c=11;
+    cor(ox,oy,1,1,c);cor(ox+ww,oy,-1,1,c);cor(ox,oy+hh,1,-1,c);cor(ox+ww,oy+hh,-1,-1,c);
+    x.globalCompositeOperation='lighter';x.globalAlpha=.5;x.drawImage(glow,cx-44,cy-44,88,88);x.globalAlpha=1;x.globalCompositeOperation='source-over'}
+  function cor(px,py,sx,sy,c){x.beginPath();x.moveTo(px+sx*c,py);x.lineTo(px,py);x.lineTo(px,py+sy*c);x.stroke()}
+  function rr(a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+  const M=['Escaneando el corpus','Trazando citas','Verificando autoridades','Cruzando fuentes'];let mi=0;
+  setInterval(()=>{document.getElementById('st').textContent=M[mi%M.length];document.getElementById('dots').textContent='.'.repeat((mi%3)+1);mi++},900);
+  addEventListener('resize',resize);glow=mkGlow();resize();nodes=Array.from({length:N},(_,i)=>spawn(i));requestAnimationFrame(frame);
+})();
+</script></body></html>

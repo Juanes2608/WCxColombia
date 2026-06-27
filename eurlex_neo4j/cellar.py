@@ -99,6 +99,22 @@ def fetch_metadata(celex_ids: list[str], chunk_size: int = 50) -> list[dict]:
     return results
 
 
+# ---------------------------------------------------------------------------
+# Existence check for a SINGLE id (Agent 1, EU branch)
+# ---------------------------------------------------------------------------
+def case_exists(celex: str) -> bool:
+    """
+    True if one CELEX id resolves to a real document in Cellar.
+
+    Agent 1 asks "does this citation exist?". For EU/CELEX-style citations we
+    answer it against the live Publications Office record: a non-empty metadata
+    row means the work is real. UK case law is checked in the Neo4j graph
+    instead; this is only the EU fallback so the existence layer can reach
+    beyond the loaded corpus.
+    """
+    return bool(fetch_metadata([celex]))
+
+
 # Quick manual smoke test: `python -m eurlex_neo4j.cellar`
 if __name__ == "__main__":
     edges = fetch_citations(limit=10)

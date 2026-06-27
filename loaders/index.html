@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TraceIT — Galería de pantallas de carga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--black:#14181A;--lime:#C6F035;--paper:#F6F7F2;--muted:#8a93a3;
+    --disp:'Space Grotesk',sans-serif;--body:'Inter',sans-serif;--mono:'JetBrains Mono',monospace}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1115;color:var(--paper);font-family:var(--body);padding:36px 40px 80px}
+  header{margin-bottom:28px}
+  h1{font-family:var(--disp);font-weight:600;font-size:28px;color:var(--paper)}
+  .mk{width:54px;height:6px;background:var(--lime);border-radius:2px;margin:8px 0 14px;box-shadow:0 0 14px rgba(198,240,53,.5)}
+  header p{color:var(--muted);font-size:14px;max-width:680px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+  .card{background:#11161b;border:1px solid #222c34;border-radius:14px;overflow:hidden;transition:.15s}
+  .card:hover{border-color:#3a4a3a;transform:translateY(-2px)}
+  .frame{position:relative;width:100%;aspect-ratio:16/10;background:#000;overflow:hidden}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .meta{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .meta .nm{font-family:var(--disp);font-weight:500;font-size:15px}
+  .meta .nm small{display:block;color:var(--muted);font-family:var(--mono);font-size:11px;margin-top:3px;font-weight:400}
+  .tag{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+    padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .dark{background:rgba(198,240,53,.14);color:var(--lime)}
+  .light{background:rgba(246,247,242,.12);color:#cfd6c8}
+  .open{display:inline-block;margin-top:2px;font-size:12px;color:var(--lime);text-decoration:none;font-family:var(--mono)}
+  .open:hover{text-decoration:underline}
+</style></head><body>
+<header>
+  <h1>TraceIT — Pantallas de carga</h1><div class="mk"></div>
+  <p>7 versiones que respetan el manual de marca (forensic black #14181A + acid lime #C6F035; verde/ámbar/rojo reservados para veredictos). Cada tarjeta corre en vivo. Haz clic en <b>abrir en grande</b> para verla a pantalla completa y elegir.</p>
+</header>
+<div class="grid" id="g"></div>
+<script>
+  const V=[
+    {f:'v1-dark-minimal.html',  n:'Minimal Reticle', s:'sobria · 2D · corta', t:'dark'},
+    {f:'v2-dark-constellation.html', n:'Constelación', s:'muchos nodos · radar', t:'dark'},
+    {f:'v3-dark-five.html',     n:'Five Trace', s:'5 nodos derivados', t:'dark'},
+    {f:'v6-dark-scanlines.html',n:'Scanlines', s:'leyendo el documento · 2D', t:'dark'},
+    {f:'v7-dark-orbit.html',    n:'Órbita', s:'anillos de nodos', t:'dark'},
+    {f:'v4-light-minimal.html', n:'Minimal (claro)', s:'sobria · 2D · corta', t:'light'},
+    {f:'v5-light-five.html',    n:'Five Trace (claro)', s:'5 nodos derivados', t:'light'},
+  ];
+  const g=document.getElementById('g');
+  V.forEach(v=>{const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<div class="frame"><iframe src="${v.f}" loading="lazy" title="${v.n}"></iframe></div>
+      <div class="meta"><div class="nm">${v.n}<small>${v.s}</small><a class="open" href="${v.f}" target="_blank">▸ abrir en grande</a></div>
+      <span class="tag ${v.t}">${v.t==='dark'?'oscuro':'claro'}</span></div>`;
+    g.appendChild(c)});
+</script></body></html>
