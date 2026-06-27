@@ -14,7 +14,7 @@ import { FinancialPanel } from "@/components/citationguard/FinancialPanel";
 export const Route = createFileRoute("/results/$matterId")({
   head: () => ({
     meta: [
-      { title: "Report — TraceIt" },
+      { title: "TraceIt report" },
       {
         name: "description",
         content:

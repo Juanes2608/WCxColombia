@@ -9,7 +9,7 @@ import { AppMock } from "@/components/citationguard/AppMock";
 
 export const Route = createFileRoute("/lab")({
   head: () => ({
-    meta: [{ title: "Background Lab — TraceIt" }],
+    meta: [{ title: "TraceIt background lab" }],
   }),
   component: Lab,
 });
@@ -32,12 +32,12 @@ function Lab() {
           <h1 className="mt-6 font-editorial text-5xl font-medium leading-[1.0] tracking-tight sm:text-6xl">
             Because the AI invents.
             <br />
-            <span className="bg-accent-lime px-1.5 text-ink-fixed">The corpus doesn&rsquo;t.</span>
+            <span className="mark-lime">The corpus doesn&rsquo;t.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-paper-fixed/55">
             Upload a skeleton argument and TraceIt checks every authority against the real
-            corpus — does it exist, is it applied correctly, is it still good law — before it
-            reaches the court.
+            corpus before it reaches the court: does it exist, is it applied correctly, is it
+            still good law?
           </p>
         </div>
         <AppMock />

@@ -10,7 +10,7 @@ export function DegradedNotice() {
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p>
         <span className="font-semibold">Good-law layer degraded.</span> &ldquo;Still good
-        law?&rdquo; was not checked for some authorities — those rows read{" "}
+        law?&rdquo; was not checked for some authorities. Those rows read{" "}
         <span className="font-mono uppercase">Not checked</span>, not passed.
       </p>
     </div>

@@ -12,11 +12,11 @@ import {
 export const Route = createFileRoute("/scan")({
   head: () => ({
     meta: [
-      { title: "TraceIt — Citation integrity for skeleton arguments" },
+      { title: "TraceIt: Citation integrity for skeleton arguments" },
       {
         name: "description",
         content:
-          "Verify every legal citation in a High Court skeleton argument: does it exist, is it applied correctly, is it still good law? Deterministic corpus lookup — never an LLM.",
+          "Verify every legal citation in a High Court skeleton argument: does it exist, is it applied correctly, is it still good law? Deterministic corpus lookup, never an LLM.",
       },
       { property: "og:title", content: "TraceIt" },
       {
@@ -32,7 +32,7 @@ function validateFile(file: File): string | null {
   const name = file.name.toLowerCase();
   if (!ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext)))
     return "Only PDF and TXT files are accepted.";
-  if (file.size > MAX_FILE_BYTES) return "File too large — maximum 20 MB.";
+  if (file.size > MAX_FILE_BYTES) return "File too large. Maximum is 20 MB.";
   return null;
 }
 
@@ -87,11 +87,11 @@ function Index() {
         <h1 className="mt-8 font-display text-4xl font-semibold leading-tight tracking-tight text-ink sm:text-5xl">
           Because the AI invents.
           <br />
-          <span className="bg-accent-lime px-1 text-ink">The corpus doesn&rsquo;t.</span>
+          <span className="mark-lime">The corpus doesn&rsquo;t.</span>
         </h1>
         <p className="mt-4 max-w-xl text-base text-n500">
-          Upload a skeleton argument and TraceIt verifies every authority — does it exist,
-          is it applied correctly, is it still good law — before you file.
+          Upload a skeleton argument and TraceIt verifies every authority before you file: does it
+          exist, is it applied correctly, is it still good law?
         </p>
 
         <div
@@ -155,7 +155,7 @@ function Index() {
         {error && (
           <div
             role="alert"
-            className="mt-4 flex items-start gap-3 rounded-lg border border-bad-bd bg-bad-bg px-4 py-3 text-sm text-bad"
+            className="mt-4 flex items-start gap-3 rounded-lg border border-bad-bd bg-bad-bg px-4 py-3 text-sm text-bad animate-in fade-in-0 slide-in-from-top-1 duration-200"
           >
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{error}</span>
@@ -166,7 +166,7 @@ function Index() {
           <FileText className="mt-0.5 h-4 w-4 shrink-0 text-ink-300" aria-hidden="true" />
           <span>
             <span className="font-mono uppercase text-ink">Fabricated</span> verdicts come from
-            deterministic corpus lookup —{" "}
+            deterministic corpus lookup,{" "}
             <span className="font-semibold text-ink">never from an LLM.</span>
           </span>
         </p>

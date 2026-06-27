@@ -18,7 +18,7 @@ export function ConfidenceMeter({ value, variant = "row" }: Props) {
 
   if (variant === "row") {
     return (
-      <div className="flex items-center gap-2" title={`Confidence ${value.toFixed(2)} — ${label}`}>
+      <div className="flex items-center gap-2" title={`Confidence ${value.toFixed(2)}: ${label}`}>
         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-n300">
           <div className={`h-full rounded-full ${TRACK[tone]}`} style={{ width: `${pct}%` }} />
         </div>

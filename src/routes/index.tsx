@@ -25,13 +25,13 @@ import { AppMock } from "@/components/citationguard/AppMock";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "TraceIt — Because the AI invents. The corpus doesn't." },
+      { title: "TraceIt: Because the AI invents. The corpus doesn't." },
       {
         name: "description",
         content:
-          "Verify every authority in a High Court skeleton argument — does it exist, is it applied correctly, is it still good law — before you file. Fabricated verdicts from deterministic corpus lookup, never an LLM.",
+          "Verify every authority in a High Court skeleton argument before you file: does it exist, is it applied correctly, is it still good law? The fabrication verdict comes from deterministic corpus lookup, never an LLM.",
       },
-      { property: "og:title", content: "TraceIt — Citation integrity for the Bar" },
+      { property: "og:title", content: "TraceIt: Citation integrity for the Bar" },
       {
         property: "og:description",
         content: "Because the AI invents. The corpus doesn't.",
@@ -55,17 +55,17 @@ function Hero() {
         <p className="font-mono text-xs uppercase tracking-widest text-action">
           Citation integrity for the Bar
         </p>
-        <h1 className="mt-6 font-editorial text-5xl font-medium leading-[1.0] tracking-tight text-ink sm:text-6xl lg:text-[5rem]">
+        <h1 className="mt-6 font-editorial text-4xl font-medium leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-[3.5rem]">
           Because the AI invents.
           <br />
-          <span className="bg-accent-lime px-1.5 text-ink-fixed">
+          <span className="mark-lime">
             <DecryptedText text={"The corpus doesn’t."} />
           </span>
         </h1>
         <p className="mt-6 max-w-xl text-lg text-n500">
           Upload a skeleton argument and TraceIt checks every authority against the real
-          corpus — does it exist, is it applied correctly, is it still good law — before it reaches
-          the court. Fabricated verdicts come from deterministic lookup, never a language model.
+          corpus before it reaches the court: does it exist, is it applied correctly, is it still
+          good law? The fabrication verdict comes from deterministic lookup, never a language model.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
@@ -112,8 +112,8 @@ function Demo() {
             From upload to verdict in under two minutes.
           </h2>
           <p className="mt-4 text-lg text-n500">
-            Watch a real skeleton go in and come out with every citation marked — fabricated,
-            misapplied, or verified — each with its source.
+            Watch a real skeleton go in and come out with every citation marked as fabricated,
+            misapplied, or verified, each with its source.
           </p>
         </div>
         <div className="mt-10 flex aspect-video w-full items-center justify-center rounded-2xl border border-n300 bg-paper">
@@ -165,7 +165,7 @@ function Engines() {
           Where a citation costs you the case.
         </h2>
         <p className="mt-4 text-lg text-n500">
-          Three checks run on every authority. The first one is deterministic — and it&rsquo;s the
+          Three checks run on every authority. The first one is deterministic, and it&rsquo;s the
           one that ends careers if it&rsquo;s wrong.
         </p>
       </div>
@@ -183,7 +183,7 @@ function Engines() {
           <ul className="mt-5 space-y-2 text-sm text-paper/90">
             <li className="flex gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-lime" />
-              Deterministic lookup against the corpus — no model in the loop.
+              Deterministic lookup against the corpus, with no model in the loop.
             </li>
             <li className="flex gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent-lime" />
@@ -215,7 +215,7 @@ function Engines() {
 
       <p className="mt-8 max-w-3xl text-sm text-n500">
         Existence is deterministic corpus lookup. Application and treatment draw on cited sources.
-        Anything advisory or model-generated is labelled as such — so you always know what&rsquo;s a
+        Anything advisory or model-generated is labelled as such, so you always know what&rsquo;s a
         fact and what&rsquo;s a judgement.
       </p>
     </section>
@@ -250,7 +250,7 @@ function Proof() {
           </h2>
           <p className="mt-4 text-lg text-paper-fixed/70">
             Generative AI fabricates legal citations at a measurable rate. Deterministic lookup
-            fabricates none — because it can only return what the corpus contains.
+            fabricates none, because it can only return what the corpus contains.
           </p>
         </div>
 
@@ -275,7 +275,7 @@ function Proof() {
           ))}
         </div>
         <p className="mt-6 font-mono text-xs text-paper-fixed/50">
-          Computed deterministically — not LLM-generated.
+          Computed deterministically, not LLM-generated.
         </p>
       </div>
     </section>
@@ -292,7 +292,7 @@ function Thesis() {
     {
       icon: Scale,
       title: "The advocate signs, not the software.",
-      body: "TraceIt is decision support, not legal advice — and we label every advisory note as advisory.",
+      body: "TraceIt is decision support, not legal advice, and we label every advisory note as advisory.",
     },
   ];
   return (
@@ -302,7 +302,7 @@ function Thesis() {
           We sell certainty, not another AI that guesses.
         </h2>
         <p className="mt-4 text-lg text-n500">
-          Every other tool adds a model to your workflow. We add a corpus — and we tell you exactly
+          Every other tool adds a model to your workflow. We add a corpus, and we tell you exactly
           where the model stops and the facts begin.
         </p>
       </div>
@@ -314,8 +314,8 @@ function Thesis() {
             Deterministic where it counts.
           </h3>
           <p className="mt-3 text-sm text-n500">
-            The verdict that can sink you — does this authority exist — never comes from a language
-            model.
+            The verdict that can sink you, whether this authority exists, never comes from a
+            language model.
           </p>
         </div>
         {principles.map((p) => (
@@ -334,11 +334,11 @@ function Faq() {
   const qa = [
     {
       q: "What happens when it gets a citation wrong?",
-      a: "Every verdict shows its source and a confidence signal, and coverage gaps are flagged per finding — so a wrong call is visible and auditable, not silent. You review the flags; you don\u2019t outsource the judgement.",
+      a: "Every verdict shows its source and a confidence signal, and coverage gaps are flagged per finding, so a wrong call is visible and auditable, not silent. You review the flags; you don\u2019t outsource the judgement.",
     },
     {
       q: "Could TraceIt hallucinate, like the AI it\u2019s checking?",
-      a: "The existence verdict can\u2019t. It\u2019s deterministic lookup — it returns what\u2019s in the corpus or nothing. Only clearly-labelled advisory notes involve a model.",
+      a: "The existence verdict can\u2019t. It\u2019s deterministic lookup: it returns what\u2019s in the corpus or nothing. Only clearly labelled advisory notes involve a model.",
     },
     {
       q: "Why deterministic instead of a smarter AI?",
@@ -346,7 +346,7 @@ function Faq() {
     },
     {
       q: "Who\u2019s responsible if a bad citation gets through?",
-      a: "The signing advocate remains responsible for every authority — TraceIt is decision support, not legal advice. We make the risk visible; we don\u2019t assume it.",
+      a: "The signing advocate remains responsible for every authority. TraceIt is decision support, not legal advice. We make the risk visible; we don\u2019t assume it.",
     },
   ];
   return (

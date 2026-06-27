@@ -77,6 +77,14 @@
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
 
+  /* Motion — strong custom easing (per Emil Kowalski: the built-in CSS easings
+     are too weak). Overriding the default timing function makes every bare
+     `transition` utility across the app (buttons, links, inputs, the theme
+     toggle) ease out with intent. `ease-fluid` is for on-screen movement. */
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-fluid: cubic-bezier(0.77, 0, 0.175, 1);
+
   --color-ink: var(--ink);
   --color-ink-700: var(--ink-700);
   --color-ink-300: var(--ink-300);
@@ -330,4 +338,26 @@
   .cg-spin-rev-med {
     animation: none !important;
   }
+}
+
+/*
+ * Marker highlight — the lime "highlighter" stroke behind punchline text.
+ * A plain background fills the whole line box, so it sits far above/below the
+ * glyphs (reads as an oversized slab) and touches the line above when leading
+ * is tight. Instead, paint a gradient BAND that only covers the glyph area, so
+ * it reads like a real highlighter pen, stays clear of the line above, and
+ * never looks chunky. `clone` repeats it cleanly across wrapped lines.
+ * Dark text (ink-fixed) keeps AA contrast on the light lime in both themes.
+ */
+.mark-lime {
+  color: var(--ink-fixed);
+  padding-inline: 0.1em;
+  background-image: linear-gradient(
+    transparent 16%,
+    var(--accent-lime) 16%,
+    var(--accent-lime) 86%,
+    transparent 86%
+  );
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }

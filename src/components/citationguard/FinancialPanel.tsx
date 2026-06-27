@@ -85,7 +85,7 @@ export function FinancialPanel({ financial }: { financial: FinancialSummary }) {
       <p className="mt-4 text-xs leading-relaxed text-n500">
         Sources: Stanford arXiv:2401.01301 (hallucination baseline) · Law Society 2024 Salary
         Survey (£300/hr) · CPR r.44.11 wasted-costs precedents (£62k estimate). Figures computed
-        deterministically — not LLM-generated.
+        deterministically, not LLM-generated.
       </p>
     </div>
   );

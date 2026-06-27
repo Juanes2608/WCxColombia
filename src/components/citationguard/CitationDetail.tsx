@@ -88,7 +88,7 @@ export function CitationDetail({ citation, onClose }: Props) {
                   </p>
                   {citation.statutory.exists === null ? (
                     <p className="rounded-lg border border-unk-bd bg-unk-bg px-3 py-2 text-sm text-unk">
-                      Lookup timed out — the provision could not be verified. Not checked is not
+                      Lookup timed out. The provision could not be verified. Not checked is not
                       the same as passed.
                     </p>
                   ) : (

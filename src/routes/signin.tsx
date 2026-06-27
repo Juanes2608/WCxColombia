@@ -1,19 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Lock, Mail, ScanSearch } from "lucide-react";
+import { ArrowRight, Loader2, Lock, Mail, ScanSearch } from "lucide-react";
 import { Logo } from "@/components/citationguard/Logo";
 import { ThemeToggle } from "@/components/citationguard/ThemeToggle";
 
 export const Route = createFileRoute("/signin")({
   head: () => ({
     meta: [
-      { title: "Sign in — TraceIt" },
+      { title: "Sign in to TraceIt" },
       {
         name: "description",
         content:
           "Sign in to TraceIt to scan skeleton arguments and verify citation integrity against the corpus.",
       },
-      { property: "og:title", content: "Sign in — TraceIt" },
+      { property: "og:title", content: "Sign in to TraceIt" },
       {
         property: "og:description",
         content: "Access the deterministic citation-integrity workspace.",
@@ -51,7 +51,7 @@ function SignIn() {
           <h1 className="mt-4 font-display text-4xl font-semibold tracking-tight">
             Sign in and start
             <br />
-            <span className="bg-accent-lime px-1 text-ink">checking citations.</span>
+            <span className="mark-lime">checking citations.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-n500">
             Your workspace keeps every scan, verdict and audit trail in one place.
@@ -92,7 +92,10 @@ function SignIn() {
             <label className="block">
               <span className="mb-1.5 flex items-center justify-between text-sm font-medium text-n700">
                 Password
-                <a href="#" className="text-xs font-medium text-action hover:opacity-80">
+                <a
+                  href="#"
+                  className="text-xs font-medium text-action transition-opacity hover:opacity-80"
+                >
                   Forgot?
                 </a>
               </span>
@@ -113,14 +116,26 @@ function SignIn() {
               disabled={submitting}
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition hover:bg-ink-700 active:scale-[0.97] disabled:opacity-60 disabled:active:scale-100"
             >
-              {submitting ? "Opening workspace…" : "Sign in"}
-              {!submitting && <ArrowRight className="h-4 w-4" />}
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Opening workspace…
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </>
+              )}
             </button>
           </form>
 
           <div className="mt-6 border-t border-n300/70 pt-4 text-center text-sm text-n500">
             New to TraceIt?{" "}
-            <Link to="/scan" className="font-semibold text-action hover:opacity-80">
+            <Link
+              to="/scan"
+              className="font-semibold text-action transition-opacity hover:opacity-80"
+            >
               Try the demo
             </Link>
           </div>

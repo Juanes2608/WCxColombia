@@ -65,10 +65,10 @@ export function Closing() {
     <section id="audience" className="relative overflow-hidden bg-ink-fixed">
       <Atmosphere intensity="bold" />
       <div className="relative z-10 mx-auto max-w-3xl px-6 py-28 text-center text-paper-fixed">
-        <h2 className="font-editorial text-4xl font-medium tracking-tight sm:text-5xl">
+        <h2 className="font-editorial text-3xl font-medium tracking-tight sm:text-4xl">
           Because the AI invents.
           <br />
-          <span className="bg-accent-lime px-1.5 text-ink-fixed">The corpus doesn&rsquo;t.</span>
+          <span className="mark-lime">The corpus doesn&rsquo;t.</span>
         </h2>
         <p className="mt-5 text-lg text-paper-fixed/70">
           Deterministic citation integrity, with every gap disclosed. The corpus is the witness.
@@ -111,7 +111,7 @@ export function Footer() {
           </Link>
         </div>
         <p className="max-w-md text-xs text-n500">
-          © {new Date().getFullYear()} TraceIt. Decision support for citation integrity — not
+          © {new Date().getFullYear()} TraceIt. Decision support for citation integrity, not
           legal advice.
         </p>
       </div>

@@ -52,7 +52,7 @@ export const AUTHENTICITY: Record<AuthenticityVerdict, VerdictStyle> = {
     "Fabricated",
     "bad",
     XCircle,
-    "Citation not found in the corpus. Asserted by deterministic lookup — never by an LLM.",
+    "Citation not found in the corpus. Asserted by deterministic lookup, never by an LLM.",
   ),
   MISAPPLIED: make(
     "Misapplied",

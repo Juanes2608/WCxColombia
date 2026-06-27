@@ -64,7 +64,7 @@ export async function verifyCitations(file: File): Promise<VerifyResult> {
     throw new ApiError(400, "Only PDF and TXT files are accepted.");
   }
   if (file.size > MAX_FILE_BYTES) {
-    throw new ApiError(413, "File too large — maximum 20 MB.");
+    throw new ApiError(413, "File too large. Maximum is 20 MB.");
   }
 
   const form = new FormData();

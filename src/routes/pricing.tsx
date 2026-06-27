@@ -16,13 +16,13 @@ import { Nav, Closing, Footer } from "@/components/citationguard/SiteChrome";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Your return — TraceIt pricing" },
+      { title: "TraceIt pricing: your return" },
       {
         name: "description",
         content:
           "See what citation integrity returns before you pay for it. Put in your own filings, review hours and rate, and TraceIt shows your break-even, payback and margin in real time.",
       },
-      { property: "og:title", content: "Your return — TraceIt pricing" },
+      { property: "og:title", content: "TraceIt pricing: your return" },
       {
         property: "og:description",
         content: "A pricing page that proves a return, not a cost. Run your own numbers.",
@@ -306,7 +306,7 @@ function ReturnCalculator({
             prefix="£"
           />
           <Field
-            label="Honesty knob — time TraceIt actually removes"
+            label="Honesty knob: time TraceIt actually removes"
             hint="Be conservative. It assists review; it doesn't replace your sign-off."
             value={automation}
             onChange={setAutomation}
@@ -321,7 +321,7 @@ function ReturnCalculator({
       {/* Live result */}
       <div className="flex flex-col rounded-2xl border-2 border-ink bg-ink p-7 text-paper">
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-accent-lime">
-          <TrendingUp className="h-4 w-4" /> Your return — live
+          <TrendingUp className="h-4 w-4" /> Your return, live
         </div>
         <div className="mt-5 grid grid-cols-2 gap-4">
           <Metric label="Hours saved / mo" value={`${base.hoursSaved.toFixed(1)} h`} />
@@ -354,7 +354,7 @@ function ReturnCalculator({
         {/* Sensitivity */}
         <div className="mt-5">
           <p className="font-mono text-[11px] uppercase tracking-widest text-paper/40">
-            Sensitivity — net benefit / mo
+            Sensitivity: net benefit / mo
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3 text-center">
             <Scenario name="Conservative" value={GBP(conservative.net)} />
@@ -438,7 +438,7 @@ function DemandSection() {
             The margin is there because the downside is enormous.
           </h2>
           <p className="mt-4 text-lg text-paper/70">
-            You don&rsquo;t pay TraceIt against zero — you pay it against the cost of one bad
+            You don&rsquo;t pay TraceIt against zero. You pay it against the cost of one bad
             authority reaching the court. That is what makes a few hundred pounds a month an easy
             call.
           </p>
@@ -465,8 +465,8 @@ function DemandSection() {
           <div className="rounded-2xl border border-paper/15 bg-ink-700 p-7">
             <p className="font-display text-4xl font-semibold text-accent-lime">0</p>
             <p className="mt-3 text-sm text-paper/80">
-              hallucinated existence verdicts — deterministic lookup returns only what the corpus
-              holds.
+              hallucinated existence verdicts, because deterministic lookup returns only what the
+              corpus holds.
             </p>
             <p className="mt-3 font-mono text-[11px] uppercase tracking-wide text-paper/40">
               By construction
@@ -475,7 +475,7 @@ function DemandSection() {
         </div>
         <p className="mt-6 max-w-3xl text-sm text-paper/60">
           One wasted-costs order, or one filing discredited in front of a judge, dwarfs a year of
-          subscription. The calculator above only counts review hours — the risk avoided is on top.
+          subscription. The calculator above only counts review hours. The risk avoided is on top.
         </p>
       </div>
     </section>
@@ -534,8 +534,8 @@ function Honesty() {
         ))}
       </dl>
       <p className="mt-6 rounded-xl border border-n300 bg-surface p-5 text-sm text-n500">
-        This page is illustrative, not a cotización. TraceIt is decision support, not legal
-        advice — the signing advocate remains responsible for every authority.
+        This page is illustrative, not a quote. TraceIt is decision support, not legal
+        advice. The signing advocate remains responsible for every authority.
       </p>
     </section>
   );
@@ -563,11 +563,11 @@ function PricingPage() {
           </p>
           <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-5xl">
             Recover the month&rsquo;s cost on the{" "}
-            <span className="bg-accent-lime px-1 text-ink">first filing you check.</span>
+            <span className="mark-lime">first filing you check.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-n500">
             Below is the honest version: real plan prices, the infra cost behind each, and a
-            calculator that uses your numbers — not ours — to show your break-even, payback and
+            calculator that uses your numbers, not ours, to show your break-even, payback and
             margin. You compare the price against what you save, not against zero.
           </p>
         </motion.div>
@@ -608,7 +608,7 @@ function PricingPage() {
           </h2>
           <p className="mt-4 text-lg text-n500">
             Pick a plan, put in your filings, your review hours and your rate. The figure that
-            matters is the one you generate — including a conservative scenario, because we&rsquo;d
+            matters is the one you generate, including a conservative scenario, because we&rsquo;d
             rather under-promise.
           </p>
         </div>

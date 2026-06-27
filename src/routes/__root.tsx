@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TraceIt — Citation integrity for the Bar" },
+      { title: "TraceIt: Citation integrity for the Bar" },
       {
         name: "description",
         content:
           "Deterministic citation-integrity checking for legal filings. Because the AI invents. The corpus doesn't.",
       },
       { name: "author", content: "TraceIt" },
-      { property: "og:title", content: "TraceIt — Citation integrity for the Bar" },
+      { property: "og:title", content: "TraceIt: Citation integrity for the Bar" },
       { property: "og:description", content: "Because the AI invents. The corpus doesn't." },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "/brand/og-cover.png" },
