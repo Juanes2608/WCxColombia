@@ -126,9 +126,11 @@ export async function getPreview(
   nodeId: string,
   claim: string,
   k = 3,
+  full = false,
 ): Promise<PreviewResult> {
   const base = requireApiBase();
   const params = new URLSearchParams({ claim: claim.slice(0, 500), k: String(k) });
+  if (full) params.set("full", "true");
   let res: Response;
   try {
     res = await fetch(`${base}/api/preview/${encodeURIComponent(nodeId)}?${params}`);

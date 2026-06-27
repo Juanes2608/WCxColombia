@@ -600,7 +600,7 @@ function RightPanel({
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-n200 bg-paper px-4 py-2.5 text-[12.5px] font-semibold text-ink transition-colors hover:bg-n100"
           >
             <BookOpen className="h-3.5 w-3.5 shrink-0 text-n500" aria-hidden="true" />
-            Read judgment passages
+            Ver sentencia
           </button>
         )}
 
@@ -672,14 +672,14 @@ function RightPanel({
                   <button
                     type="button"
                     onClick={() => onPreview({
-                      nodeId: toNodeId(a.short_name),
+                      nodeId: a.node_id ?? toNodeId(a.short_name),
                       claim: a.proposition || a.citation,
                       label: a.short_name,
                     })}
                     className="flex items-center gap-1.5 pt-0.5 font-mono text-[10px] text-action hover:text-ink transition-colors"
                   >
                     <BookOpen className="h-3 w-3" aria-hidden="true" />
-                    Read judgment
+                    Ver sentencia
                   </button>
                 </div>
               ))}

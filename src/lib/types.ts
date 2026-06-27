@@ -73,6 +73,7 @@ export interface JudgmentPointer {
 export interface AmendmentSuggestion {
   citation: string;
   short_name: string;
+  node_id?: string | null;
   proposition: string;
   rationale: string;
 }
@@ -177,8 +178,9 @@ export interface PreviewResult {
   short_name: string;
   status: string;
   bailii_url: string | null;
-  preview_mode: "full" | "proposition_only";
+  preview_mode: "full" | "proposition_only" | "not_found";
   claim: string;
+  full_text?: string | null;
   proposition: string;
   passages: PreviewPassage[];
 }
