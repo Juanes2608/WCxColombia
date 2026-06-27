@@ -32,15 +32,19 @@ def render_cases(rows: list[dict]) -> list[str]:
             continue
         node_id = slugify(r["short_name"])
         verified = "true" if r.get("verified", "").lower() == "true" else "false"
+        bailii = escape_cypher(r.get("bailii_url", "").strip())
+        key_para = escape_cypher(r.get("key_paragraph", "").strip())
         stmt = (
             f"MERGE (c:Case {{nodeId: '{escape_cypher(node_id)}'}}) "
-            f"SET c.citation  = '{escape_cypher(r['citation'])}', "
-            f"    c.shortName = '{escape_cypher(r['short_name'])}', "
-            f"    c.year      = {int(r['year']) if r.get('year', '').isdigit() else 0}, "
-            f"    c.court     = '{escape_cypher(r.get('court', ''))}', "
-            f"    c.status    = '{escape_cypher(r.get('status', 'GOOD_LAW'))}', "
-            f"    c.domain    = '{escape_cypher(r.get('domain', 'general'))}', "
-            f"    c.verified  = {verified};"
+            f"SET c.citation      = '{escape_cypher(r['citation'])}', "
+            f"    c.shortName     = '{escape_cypher(r['short_name'])}', "
+            f"    c.year          = {int(r['year']) if r.get('year', '').isdigit() else 0}, "
+            f"    c.court         = '{escape_cypher(r.get('court', ''))}', "
+            f"    c.status        = '{escape_cypher(r.get('status', 'GOOD_LAW'))}', "
+            f"    c.domain        = '{escape_cypher(r.get('domain', 'general'))}', "
+            f"    c.verified      = {verified}, "
+            f"    c.bailiiUrl     = '{bailii}', "
+            f"    c.keyParagraph  = '{key_para}';"
         )
         statements.append(stmt)
 
