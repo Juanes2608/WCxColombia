@@ -10,6 +10,29 @@ import { Logo } from "@/components/citationguard/Logo";
 // Emil ease — strong ease-out for the popover entrance.
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
+// One-time nudge toward the FAB. Appears shortly after the page settles, never
+// nags again once the user opens or dismisses it (per-session).
+const HINT_DELAY_MS = 1400;
+const HINT_STORAGE_KEY = "traceit:pricing-chat-hint-seen";
+
+function readHintSeen(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.sessionStorage.getItem(HINT_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markHintSeen(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(HINT_STORAGE_KEY, "1");
+  } catch {
+    // sessionStorage unavailable (private mode); fall back to in-memory state.
+  }
+}
+
 interface ChatPanelProps {
   inputs: CalculatorInputs;
   onApplyInputs: (next: CalculatorInputs) => void;
@@ -35,6 +58,7 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState<AppliedChange | null>(null);
+  const [showHint, setShowHint] = useState(false);
   const reduce = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,6 +71,25 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Surface the nudge once, a beat after load, unless already seen this session.
+  useEffect(() => {
+    if (readHintSeen()) return;
+    const t = window.setTimeout(() => setShowHint(true), HINT_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // Opening the chat retires the nudge for good.
+  useEffect(() => {
+    if (!open) return;
+    setShowHint(false);
+    markHintSeen();
+  }, [open]);
+
+  const dismissHint = () => {
+    setShowHint(false);
+    markHintSeen();
+  };
 
   // Keep the conversation scrolled to the newest message / thinking indicator.
   useEffect(() => {
@@ -241,6 +284,53 @@ export function ChatPanel({ inputs, onApplyInputs }: ChatPanelProps) {
                 <ArrowUp className="h-4 w-4" />
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* One-time nudge pointing at the FAB */}
+      <AnimatePresence>
+        {showHint && !open && (
+          <motion.div
+            initial={{ opacity: 0, transform: reduce ? "none" : "translateY(8px) scale(0.96)" }}
+            animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+            exit={{ opacity: 0, transform: reduce ? "none" : "translateY(6px) scale(0.97)" }}
+            transition={{ duration: 0.24, ease: EASE_OUT }}
+            style={{ transformOrigin: "bottom right" }}
+            className="fixed bottom-[84px] right-5 z-50 w-[min(80vw,264px)]"
+          >
+            {/* Gentle float to draw the eye without distracting. */}
+            <motion.div
+              animate={reduce ? undefined : { transform: ["translateY(0px)", "translateY(-4px)", "translateY(0px)"] }}
+              transition={reduce ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+              className="relative"
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="block w-full rounded-2xl bg-ink px-4 py-3 text-left shadow-2xl shadow-ink/30 ring-1 ring-accent-lime/25 transition hover:ring-accent-lime/50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-lime"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-widest text-accent-lime">
+                  Pricing analyst
+                </p>
+                <p className="mt-0.5 text-sm font-medium leading-snug text-paper">
+                  Questions about this valuation? Ask the model anything.
+                </p>
+              </button>
+              {/* Tail pointing down to the bubble. */}
+              <span
+                className="absolute -bottom-1 right-6 h-3 w-3 rotate-45 bg-ink"
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={dismissHint}
+                aria-label="Dismiss hint"
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-n300 bg-surface text-n500 shadow-sm transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
