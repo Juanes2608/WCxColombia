@@ -847,79 +847,12 @@ function SummaryPanel({ result, onSelect }: { result: VerifyResult; onSelect: (i
   );
 }
 
-// ─── Report export ────────────────────────────────────────────────────────────
-
-function downloadReport(result: VerifyResult) {
-  const fabricated = result.results.filter(r => r.layer1.verdict === "FABRICATED");
-  const misapplied = result.results.filter(r => r.layer1.verdict === "MISAPPLIED");
-  const verified   = result.results.filter(r => r.layer1.verdict === "VERIFIED");
-
-  const lines: string[] = [
-    "TraceIT — Citation Integrity Report",
-    "=".repeat(52),
-    `Matter:    ${result.matter_id}`,
-    `Audit:     sha256:${result.audit_trail_hash ?? ""}`,
-    `Processed: ${result.processing_ms} ms`,
-    "",
-    "SUMMARY",
-    "-".repeat(30),
-    `Total citations checked : ${result.total_citations}`,
-    `  Verified              : ${verified.length}`,
-    `  Misapplied            : ${misapplied.length}`,
-    `  Fabricated            : ${fabricated.length}`,
-    "",
-  ];
-
-  if (fabricated.length > 0) {
-    lines.push("NON-EXISTENT CITATIONS (FABRICATED)");
-    lines.push("-".repeat(40));
-    for (const r of fabricated) {
-      lines.push(`[✕] ${r.raw_text}`);
-      lines.push(`    ${r.layer1.explanation}`);
-      lines.push("");
-    }
-  }
-
-  if (misapplied.length > 0) {
-    lines.push("MISAPPLIED CITATIONS");
-    lines.push("-".repeat(40));
-    for (const r of misapplied) {
-      lines.push(`[▲] ${r.raw_text}`);
-      lines.push(`    ${r.layer1.explanation}`);
-      if (r.layer1.proposition_cited)  lines.push(`    Cited for          : ${r.layer1.proposition_cited}`);
-      if (r.layer1.proposition_actual) lines.push(`    Actually decides   : ${r.layer1.proposition_actual}`);
-      if (r.holding_analysis?.amendments?.length) {
-        lines.push(`    Suggested instead  :`);
-        for (const a of r.holding_analysis.amendments) {
-          lines.push(`      • ${a.citation}`);
-        }
-      }
-      lines.push("");
-    }
-  }
-
-  lines.push("VERIFIED CITATIONS");
-  lines.push("-".repeat(40));
-  for (const r of verified) {
-    lines.push(`[✓] ${r.raw_text}`);
-    lines.push(`    ${r.layer1.explanation}`);
-    lines.push("");
-  }
-
-  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `traceit-${result.matter_id.slice(0, 8)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 
-function TopBar({ result, copied, onCopy, onDownload }: {
+function TopBar({ result, copied, exporting, onCopy, onDownload }: {
   result: VerifyResult;
   copied: boolean;
+  exporting: boolean;
   onCopy: () => void;
   onDownload: () => void;
 }) {
@@ -953,11 +886,12 @@ function TopBar({ result, copied, onCopy, onDownload }: {
       <button
         type="button"
         onClick={onDownload}
-        className="inline-flex items-center gap-1 font-mono text-[11px] text-paper-fixed/55 transition-colors hover:text-paper-fixed"
-        title="Download report"
+        disabled={exporting}
+        className="inline-flex items-center gap-1 font-mono text-[11px] text-paper-fixed/55 transition-colors hover:text-paper-fixed disabled:opacity-50"
+        title="Download PDF report"
       >
-        <Download className="h-3 w-3" aria-hidden="true" />
-        Export
+        <Download className={`h-3 w-3 ${exporting ? "animate-pulse" : ""}`} aria-hidden="true" />
+        {exporting ? "Exporting…" : "Export PDF"}
       </button>
       <button
         type="button"
@@ -1002,10 +936,25 @@ export function VerificationSplitView({
   const [doc, setDoc] = useState<DocumentView | null>(null);
   const [scanning, setScanning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     getDocument(matterId).then(setDoc).catch(() => {});
   }, [matterId]);
+
+  // Lazy-load the PDF generator only when the user actually exports, so
+  // @react-pdf never weighs on the initial bundle.
+  const exportPdf = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { downloadReportPdf } = await import("@/lib/report-pdf");
+      await downloadReportPdf(result);
+    } catch {
+      // Swallow — the user can retry; nothing else depends on this.
+    } finally {
+      setExporting(false);
+    }
+  }, [result]);
 
   const select = useCallback((idx: number) => {
     setSelectedIdx(idx);
@@ -1024,7 +973,7 @@ export function VerificationSplitView({
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <TopBar result={result} copied={copied} onCopy={copyHash} onDownload={() => downloadReport(result)} />
+      <TopBar result={result} copied={copied} exporting={exporting} onCopy={copyHash} onDownload={exportPdf} />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: document */}
